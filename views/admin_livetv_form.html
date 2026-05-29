@@ -1,0 +1,30 @@
+{{ define "content" }}
+<div class="mb-6">
+    <a href="/admin/live-tv" class="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 mb-4">
+        <span>&larr;</span> Back to Live TV
+    </a>
+    <h1 class="text-3xl font-bold text-white">Add New Live TV Channel</h1>
+</div>
+
+<div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6 max-w-2xl">
+    <form action="/admin/live-tv/new" method="POST" class="space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Channel Name *</label>
+            <input type="text" name="name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Stream URL (m3u8) *</label>
+            <input type="url" name="stream_url" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label>
+            <input type="url" name="logo_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="pt-4 border-t border-gray-700 flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Save Channel
+            </button>
+        </div>
+    </form>
+</div>
+{{ end }}

@@ -42,11 +42,35 @@ func main() {
 		r.Post("/auth/login", handlers.Login)
 		r.Post("/auth/google", handlers.GoogleLogin)
 
+		// Admin UI Routes
+		r.Route("/admin", func(r chi.Router) {
+			r.Get("/", handlers.AdminDashboardView)
+			r.Get("/movies", handlers.AdminMoviesView)
+			r.Get("/movies/new", handlers.AdminMoviesFormView)
+			r.Post("/movies/new", handlers.AdminMoviesCreate)
+			r.Get("/series", handlers.AdminSeriesView)
+			r.Get("/series/new", handlers.AdminSeriesFormView)
+			r.Post("/series/new", handlers.AdminSeriesCreate)
+			r.Get("/live-tv", handlers.AdminLiveTVView)
+			r.Get("/live-tv/new", handlers.AdminLiveTVFormView)
+			r.Post("/live-tv/new", handlers.AdminLiveTVCreate)
+			r.Get("/sports", handlers.AdminSportsView)
+			r.Get("/sports/new", handlers.AdminSportsFormView)
+			r.Post("/sports/new", handlers.AdminSportsCreate)
+		})
+
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTMiddleware)
 			r.Get("/movies", handlers.GetMovies)
 			r.Post("/movies/resume", handlers.ResumePlayback)
+			
+			// New Streaming Platform Routes
+			r.Get("/series", handlers.GetSeries)
+			r.Get("/live-tv", handlers.GetLiveChannels)
+			r.Get("/sports", handlers.GetSportsEvents)
+			r.Get("/watchlists", handlers.GetUserWatchlists)
+			
 			r.Post("/gamification/trivia-reward", handlers.TriviaReward)
 		})
 	})

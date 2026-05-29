@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netra Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 shadow-xl border-r border-gray-700">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Netra Admin</h2>
+        </div>
+        <nav class="mt-6 flex flex-col space-y-1 px-4">
+            <a href="/admin" class="px-4 py-2 bg-gray-700 rounded-lg font-medium text-white hover:bg-gray-600 transition-colors">Dashboard</a>
+            <a href="/admin/movies" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Movies</a>
+            <a href="/admin/series" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Series</a>
+            <a href="/admin/live-tv" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Live TV</a>
+            <a href="/admin/sports" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Sports</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-900">
+        <div class="container mx-auto px-6 py-8">
+            {{ template "content" . }}
+        </div>
+    </main>
+</body>
+</html>

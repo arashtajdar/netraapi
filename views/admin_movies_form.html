@@ -1,0 +1,78 @@
+{{ define "content" }}
+<div class="mb-6">
+    <a href="/admin/movies" class="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 mb-4">
+        <span>&larr;</span> Back to Movies
+    </a>
+    <h1 class="text-3xl font-bold text-white">Add New Movie</h1>
+</div>
+
+<div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6 max-w-4xl">
+    <form action="/admin/movies/new" method="POST" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Title *</label>
+                <input type="text" name="title" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Director</label>
+                <input type="text" name="director" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Release Date</label>
+                <input type="date" name="release_date" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">IMDb Rating</label>
+                    <input type="number" step="0.1" name="imdb_rating" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Local Rating</label>
+                    <input type="number" step="0.1" name="local_rating" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Description</label>
+            <textarea name="description" rows="4" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Poster URL</label>
+                <input type="url" name="poster_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Backdrop URL</label>
+                <input type="url" name="backdrop_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Intro Start (seconds)</label>
+                <input type="number" name="intro_start" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Intro End (seconds)</label>
+                <input type="number" name="intro_end" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Video Sources (JSON Array)</label>
+                <textarea name="video_sources" rows="3" placeholder='[{"quality": "1080p", "url": "https://..."}]' class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Subtitles (JSON Object)</label>
+                <textarea name="subtitles" rows="3" placeholder='{"en": "url.vtt", "es": "url.vtt"}' class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"></textarea>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-gray-700 flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-600/20">
+                Save Movie
+            </button>
+        </div>
+    </form>
+</div>
+{{ end }}

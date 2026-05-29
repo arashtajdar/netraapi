@@ -10,17 +10,10 @@ import (
 
 func GetMovies(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	category := r.URL.Query().Get("category")
 
-	query := `SELECT id, title, description, video_url, thumbnail_url, category, duration_seconds FROM movies`
-	var args []interface{}
-
-	if category != "" {
-		query += ` WHERE category = ?`
-		args = append(args, category)
-	}
-
-	rows, err := config.DB.Query(query, args...)
+	query := `SELECT id, title, description, release_date, director, cast_members, imdb_rating, local_rating, poster_url, backdrop_url, video_sources, subtitles, intro_start, intro_end, created_at, updated_at FROM movies`
+	
+	rows, err := config.DB.Query(query)
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
 		return
@@ -30,13 +23,17 @@ func GetMovies(w http.ResponseWriter, r *http.Request) {
 	var movies []models.Movie
 	for rows.Next() {
 		var m models.Movie
-		if err := rows.Scan(&m.ID, &m.Title, &m.Description, &m.VideoURL, &m.ThumbnailURL, &m.Category, &m.DurationSeconds); err != nil {
+		if err := rows.Scan(
+			&m.ID, &m.Title, &m.Description, &m.ReleaseDate, &m.Director, 
+			&m.CastMembers, &m.IMDBRating, &m.LocalRating, &m.PosterURL, 
+			&m.BackdropURL, &m.VideoSources, &m.Subtitles, &m.IntroStart, 
+			&m.IntroEnd, &m.CreatedAt, &m.UpdatedAt,
+		); err != nil {
 			continue
 		}
 		movies = append(movies, m)
 	}
 
-	// Always return an empty array rather than null if empty
 	if movies == nil {
 		movies = []models.Movie{}
 	}
@@ -58,7 +55,6 @@ func ResumePlayback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Performs an UPSERT gracefully updating the position without crashing on duplicate key
 	query := `
 		INSERT INTO user_watch_history (user_id, movie_id, resume_position_seconds) 
 		VALUES (?, ?, ?) 
