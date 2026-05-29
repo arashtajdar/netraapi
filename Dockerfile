@@ -1,39 +1,28 @@
-# ==========================================
-# STAGE 1: BUILD
-# ==========================================
-FROM golang:1.26-alpine AS builder
+# Stage 1: Build the Go binary
+FROM golang:1.21-alpine AS builder
 
-# Install git for fetching dependencies
-RUN apk update && apk add --no-cache git
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Build a statically linked binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o netra-api main.go
+
+# Stage 2: Minimal runtime image
+FROM alpine:latest
+
+# Add certificates for TLS (required to talk to Cloudflare R2 / AWS S3)
+RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy the entire backend source code
-COPY . .
-
-# Fetch dependencies securely
-RUN go mod tidy
-RUN go mod download
-
-# Compile the Go application as a static standalone binary stripping debug symbols for size
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -a -installsuffix cgo -o netra-api .
-
-# ==========================================
-# STAGE 2: PRODUCTION (Ultra-lightweight)
-# ==========================================
-FROM scratch
-
-WORKDIR /app/
-
-# Copy the compiled binary from the builder stage
+# Copy the binary and necessary view templates
 COPY --from=builder /app/netra-api .
+COPY --from=builder /app/views ./views
 
-# Ensure the .env file is copied (Alternatively inject via Docker runtime flags)
-COPY --from=builder /app/.env .
-
-# Required for SSL/TLS connections if the Go backend hits external HTTPS APIs
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
+# Expose the default port (Railway will override this with its own PORT env var)
 EXPOSE 9876
 
 CMD ["./netra-api"]
