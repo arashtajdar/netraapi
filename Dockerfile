@@ -37,6 +37,6 @@ COPY --from=builder /app/.env .
 # Required for SSL/TLS connections if the Go backend hits external HTTPS APIs
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-EXPOSE 8080
+EXPOSE 9876
 
 CMD ["./netra-api"]

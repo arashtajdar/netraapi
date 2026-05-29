@@ -12,7 +12,7 @@ WorkingDirectory=/var/www/netra-api
 ExecStart=/var/www/netra-api/netra-api
 
 # Environment constraints
-# Environment="PORT=8080" "GIN_MODE=release"
+# Environment="PORT=9876" "GIN_MODE=release"
 
 # Reliability rules
 Restart=always
