@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -17,7 +15,7 @@ services:
   api:
     build: 
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: always
     ports:
       - "9876:9876"
@@ -29,6 +27,13 @@ services:
       - DB_HOST=db:3306
       - DB_NAME=netra_db
       - PORT=9876
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      # Mount source code so Air can detect changes
+      - .:/app
+      # Prevent overwriting the Go module cache inside the container
+      - /app/tmp
 
 volumes:
   db_data:

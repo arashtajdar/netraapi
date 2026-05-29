@@ -99,7 +99,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 func GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var input struct {
-		IDToken string `json:"idToken"`
+		IDToken     string `json:"idToken"`
+		AccessToken string `json:"accessToken"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -113,28 +114,59 @@ func GoogleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := idtoken.Validate(context.Background(), input.IDToken, clientID)
-	if err != nil {
-		http.Error(w, `{"error": "Invalid Google token"}`, http.StatusUnauthorized)
-		return
-	}
+	var email string
+	var name string
 
-	email, ok := payload.Claims["email"].(string)
-	if !ok {
-		http.Error(w, `{"error": "Email not found in token"}`, http.StatusBadRequest)
-		return
-	}
+	if input.IDToken != "" {
+		payload, err := idtoken.Validate(context.Background(), input.IDToken, clientID)
+		if err != nil {
+			http.Error(w, `{"error": "Invalid Google token"}`, http.StatusUnauthorized)
+			return
+		}
 
-	name := email
-	if n, ok := payload.Claims["name"].(string); ok {
-		name = n
+		e, ok := payload.Claims["email"].(string)
+		if !ok {
+			http.Error(w, `{"error": "Email not found in token"}`, http.StatusBadRequest)
+			return
+		}
+		email = e
+		name = email
+		if n, ok := payload.Claims["name"].(string); ok {
+			name = n
+		}
+	} else if input.AccessToken != "" {
+		req, _ := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+		req.Header.Set("Authorization", "Bearer "+input.AccessToken)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			http.Error(w, `{"error": "Invalid Google access token"}`, http.StatusUnauthorized)
+			return
+		}
+		defer resp.Body.Close()
+
+		var userInfo struct {
+			Email string `json:"email"`
+			Name  string `json:"name"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			http.Error(w, `{"error": "Failed to decode user info"}`, http.StatusInternalServerError)
+			return
+		}
+		email = userInfo.Email
+		name = userInfo.Name
+		if name == "" {
+			name = email
+		}
+	} else {
+		http.Error(w, `{"error": "No token provided"}`, http.StatusBadRequest)
+		return
 	}
 
 	var user models.User
 	var hash string
 
 	query := `SELECT id, username, email, password_hash, virtual_coins FROM users WHERE email = ?`
-	err = config.DB.QueryRow(query, email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins)
+	err := config.DB.QueryRow(query, email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins)
 
 	if err == sql.ErrNoRows {
 		// Register user

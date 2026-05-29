@@ -1,0 +1,19 @@
+# ==========================================
+# DEVELOPMENT DOCKERFILE (Live Reload with Air)
+# ==========================================
+FROM golang:1.26-alpine
+
+# Install git and Air
+RUN apk update && apk add --no-cache git
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+# Copy dependency files first for caching
+COPY go.mod go.sum* ./
+RUN go mod download
+
+# Source code is mounted as a volume — no COPY needed
+EXPOSE 9876
+
+CMD ["air", "-c", ".air.toml"]
