@@ -30,6 +30,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/auth/register", handlers.Register)
 		r.Post("/auth/login", handlers.Login)
+		r.Post("/auth/google", handlers.GoogleLogin)
 
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
