@@ -2,10 +2,11 @@
 FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
+
+# Generate go.sum if it's missing by scanning the source code
+RUN go mod tidy
+RUN go mod download
 
 # Build a statically linked binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o netra-api main.go
