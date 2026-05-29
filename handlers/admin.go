@@ -16,8 +16,22 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
 	t.ExecuteTemplate(w, "layout.html", data)
 }
 
+type DashboardStats struct {
+	MoviesCount int
+	SeriesCount int
+	LiveTVCount int
+	SportsCount int
+}
+
 func AdminDashboardView(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "admin_dashboard.html", nil)
+	var stats DashboardStats
+
+	config.DB.QueryRow("SELECT COUNT(*) FROM movies").Scan(&stats.MoviesCount)
+	config.DB.QueryRow("SELECT COUNT(*) FROM series").Scan(&stats.SeriesCount)
+	config.DB.QueryRow("SELECT COUNT(*) FROM live_tv_channels").Scan(&stats.LiveTVCount)
+	config.DB.QueryRow("SELECT COUNT(*) FROM sports_events").Scan(&stats.SportsCount)
+
+	renderTemplate(w, "admin_dashboard.html", stats)
 }
 
 func AdminMoviesView(w http.ResponseWriter, r *http.Request) {

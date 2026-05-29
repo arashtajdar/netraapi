@@ -42,22 +42,7 @@ func main() {
 		r.Post("/auth/login", handlers.Login)
 		r.Post("/auth/google", handlers.GoogleLogin)
 
-		// Admin UI Routes
-		r.Route("/admin", func(r chi.Router) {
-			r.Get("/", handlers.AdminDashboardView)
-			r.Get("/movies", handlers.AdminMoviesView)
-			r.Get("/movies/new", handlers.AdminMoviesFormView)
-			r.Post("/movies/new", handlers.AdminMoviesCreate)
-			r.Get("/series", handlers.AdminSeriesView)
-			r.Get("/series/new", handlers.AdminSeriesFormView)
-			r.Post("/series/new", handlers.AdminSeriesCreate)
-			r.Get("/live-tv", handlers.AdminLiveTVView)
-			r.Get("/live-tv/new", handlers.AdminLiveTVFormView)
-			r.Post("/live-tv/new", handlers.AdminLiveTVCreate)
-			r.Get("/sports", handlers.AdminSportsView)
-			r.Get("/sports/new", handlers.AdminSportsFormView)
-			r.Post("/sports/new", handlers.AdminSportsCreate)
-		})
+
 
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
@@ -73,6 +58,24 @@ func main() {
 			
 			r.Post("/gamification/trivia-reward", handlers.TriviaReward)
 		})
+	})
+
+	// Admin UI Routes (Moved outside API to fix 404s)
+	r.Route("/admin", func(r chi.Router) {
+		r.Get("/", handlers.AdminDashboardView)
+		r.Post("/upload", handlers.UploadMedia)
+		r.Get("/movies", handlers.AdminMoviesView)
+		r.Get("/movies/new", handlers.AdminMoviesFormView)
+		r.Post("/movies/new", handlers.AdminMoviesCreate)
+		r.Get("/series", handlers.AdminSeriesView)
+		r.Get("/series/new", handlers.AdminSeriesFormView)
+		r.Post("/series/new", handlers.AdminSeriesCreate)
+		r.Get("/live-tv", handlers.AdminLiveTVView)
+		r.Get("/live-tv/new", handlers.AdminLiveTVFormView)
+		r.Post("/live-tv/new", handlers.AdminLiveTVCreate)
+		r.Get("/sports", handlers.AdminSportsView)
+		r.Get("/sports/new", handlers.AdminSportsFormView)
+		r.Post("/sports/new", handlers.AdminSportsCreate)
 	})
     
 	r.Get("/ws/party", websockets.ServeWS(hub))
