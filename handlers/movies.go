@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -23,14 +24,40 @@ func GetMovies(w http.ResponseWriter, r *http.Request) {
 	var movies []models.Movie
 	for rows.Next() {
 		var m models.Movie
+		var desc, relDate, dir, poster, backdrop sql.NullString
+		var imdb, local sql.NullFloat64
+		var cast, vid, sub []byte
+		var introStart, introEnd sql.NullInt32
+		
 		if err := rows.Scan(
-			&m.ID, &m.Title, &m.Description, &m.ReleaseDate, &m.Director, 
-			&m.CastMembers, &m.IMDBRating, &m.LocalRating, &m.PosterURL, 
-			&m.BackdropURL, &m.VideoSources, &m.Subtitles, &m.IntroStart, 
-			&m.IntroEnd, &m.CreatedAt, &m.UpdatedAt,
+			&m.ID, &m.Title, &desc, &relDate, &dir,
+			&cast, &imdb, &local, &poster,
+			&backdrop, &vid, &sub, &introStart,
+			&introEnd, &m.CreatedAt, &m.UpdatedAt,
 		); err != nil {
 			continue
 		}
+		
+		m.Description = desc.String
+		if relDate.Valid { m.ReleaseDate = &relDate.String }
+		if dir.Valid { m.Director = &dir.String }
+		if cast != nil { m.CastMembers = cast } else { m.CastMembers = []byte("[]") }
+		if imdb.Valid { m.IMDBRating = &imdb.Float64 }
+		if local.Valid { m.LocalRating = &local.Float64 }
+		if poster.Valid { m.PosterURL = &poster.String }
+		if backdrop.Valid { m.BackdropURL = &backdrop.String }
+		if vid != nil { m.VideoSources = vid } else { m.VideoSources = []byte("[]") }
+		if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
+		
+		if introStart.Valid { 
+			v := int(introStart.Int32)
+			m.IntroStart = &v 
+		}
+		if introEnd.Valid { 
+			v := int(introEnd.Int32)
+			m.IntroEnd = &v 
+		}
+		
 		movies = append(movies, m)
 	}
 
