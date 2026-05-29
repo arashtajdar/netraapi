@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
+	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 
 	"netra-api/config"
@@ -35,7 +38,33 @@ func AdminDashboardView(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminMoviesView(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "admin_movies.html", nil)
+	rows, err := config.DB.Query("SELECT id, title, director, imdb_rating FROM movies ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var movies []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var title string
+		var director sql.NullString
+		var rating sql.NullFloat64
+		err := rows.Scan(&id, &title, &director, &rating)
+		if err == nil {
+			movies = append(movies, map[string]interface{}{
+				"ID":       id,
+				"Title":    title,
+				"Director": director.String,
+				"Rating":   rating.Float64,
+			})
+		} else {
+			log.Println("Scan error:", err)
+		}
+	}
+
+	renderTemplate(w, "admin_movies.html", map[string]interface{}{"Movies": movies})
 }
 
 func AdminMoviesFormView(w http.ResponseWriter, r *http.Request) {
@@ -71,11 +100,12 @@ func AdminMoviesCreate(w http.ResponseWriter, r *http.Request) {
 	backdropUrl := r.FormValue("backdrop_url")
 	introStart := r.FormValue("intro_start")
 	introEnd := r.FormValue("intro_end")
-	videoSources := r.FormValue("video_sources")
+	videoUrl := r.FormValue("video_url")
 	subtitles := r.FormValue("subtitles")
 
-	if videoSources == "" {
-		videoSources = "[]"
+	videoSources := "[]"
+	if videoUrl != "" {
+		videoSources = fmt.Sprintf(`[{"quality": "Original", "url": "%s"}]`, videoUrl)
 	}
 	if subtitles == "" {
 		subtitles = "{}"

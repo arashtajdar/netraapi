@@ -17,16 +17,21 @@
             </tr>
         </thead>
         <tbody class="text-gray-200 text-sm divide-y divide-gray-700">
-            <!-- Dynamic loop placeholder for movies -->
+            {{ range .Movies }}
             <tr class="hover:bg-gray-700/50 transition-colors">
-                <td class="p-4 font-medium">Inception (Placeholder)</td>
-                <td class="p-4">Christopher Nolan</td>
-                <td class="p-4 text-yellow-400">8.8</td>
+                <td class="p-4 font-medium">{{ .Title }}</td>
+                <td class="p-4">{{ .Director }}</td>
+                <td class="p-4 text-yellow-400">{{ .Rating }}</td>
                 <td class="p-4 space-x-2">
-                    <button class="text-blue-400 hover:text-blue-300 transition-colors">Edit</button>
-                    <button class="text-red-400 hover:text-red-300 transition-colors">Delete</button>
+                    <button class="text-blue-400 hover:text-blue-300">Edit</button>
+                    <button class="text-red-400 hover:text-red-300">Delete</button>
                 </td>
             </tr>
+            {{ else }}
+            <tr class="hover:bg-gray-700/50 transition-colors">
+                <td colspan="4" class="p-4 text-center text-gray-500">No movies found. Add one above!</td>
+            </tr>
+            {{ end }}
         </tbody>
     </table>
 </div>

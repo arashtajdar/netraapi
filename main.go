@@ -9,6 +9,7 @@ import (
 	"netra-api/handlers"
 	"netra-api/middleware"
 	"netra-api/websockets"
+	"netra-api/services/storage"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -22,6 +23,23 @@ func main() {
 
 	config.ConnectDB()
 	defer config.DB.Close()
+
+	if os.Getenv("STORAGE_DRIVER") == "r2" {
+		storage.ActiveProvider = storage.NewR2Storage(
+			os.Getenv("R2_ACCOUNT_ID"),
+			os.Getenv("R2_ACCESS_KEY_ID"),
+			os.Getenv("R2_SECRET_ACCESS_KEY"),
+			os.Getenv("R2_BUCKET_NAME"),
+			os.Getenv("R2_PUBLIC_URL"),
+		)
+		log.Println("☁️ Cloudflare R2 Storage Provider Initialized")
+	} else {
+		storage.ActiveProvider = storage.NewLocalStorage(
+			os.Getenv("STORAGE_LOCAL_DIR"),
+			os.Getenv("STORAGE_LOCAL_URL"),
+		)
+		log.Println("📂 Local Storage Provider Initialized")
+	}
 
 	hub := websockets.NewHub()
 	go hub.Run()
@@ -44,18 +62,17 @@ func main() {
 
 
 
+		// Public catalog routes
+		r.Get("/movies", handlers.GetMovies)
+		r.Get("/series", handlers.GetSeries)
+		r.Get("/live-tv", handlers.GetLiveChannels)
+		r.Get("/sports", handlers.GetSportsEvents)
+
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTMiddleware)
-			r.Get("/movies", handlers.GetMovies)
 			r.Post("/movies/resume", handlers.ResumePlayback)
-			
-			// New Streaming Platform Routes
-			r.Get("/series", handlers.GetSeries)
-			r.Get("/live-tv", handlers.GetLiveChannels)
-			r.Get("/sports", handlers.GetSportsEvents)
 			r.Get("/watchlists", handlers.GetUserWatchlists)
-			
 			r.Post("/gamification/trivia-reward", handlers.TriviaReward)
 		})
 	})

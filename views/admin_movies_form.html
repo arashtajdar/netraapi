@@ -11,7 +11,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Title *</label>
-                <input type="text" name="title" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                <div class="flex gap-2">
+                    <input type="text" id="title" name="title" required class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                    <button type="button" onclick="fetchTMDB()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap shadow-lg shadow-yellow-600/20">
+                        &#x2728; Auto-Fill (TMDB)
+                    </button>
+                </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Director</label>
@@ -41,22 +46,34 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Poster URL</label>
-                <div class="flex gap-2">
-                    <input type="url" id="poster_url" name="poster_url" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    <label class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-center whitespace-nowrap text-sm font-medium">
-                        Upload File
-                        <input type="file" class="hidden" accept="image/*" onchange="uploadFile(this, 'poster_url', false)">
-                    </label>
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="url" id="poster_url" name="poster_url" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        <label class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-center whitespace-nowrap text-sm font-medium">
+                            Upload File
+                            <input type="file" class="hidden" accept="image/*" onchange="uploadFile(this, 'poster_url')">
+                        </label>
+                    </div>
+                    <div id="poster_url_progress_container" class="hidden w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                        <div id="poster_url_progress_bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div id="poster_url_status" class="text-xs text-blue-400 hidden"></div>
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Backdrop URL</label>
-                <div class="flex gap-2">
-                    <input type="url" id="backdrop_url" name="backdrop_url" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    <label class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-center whitespace-nowrap text-sm font-medium">
-                        Upload File
-                        <input type="file" class="hidden" accept="image/*" onchange="uploadFile(this, 'backdrop_url', false)">
-                    </label>
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="url" id="backdrop_url" name="backdrop_url" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        <label class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors flex items-center justify-center whitespace-nowrap text-sm font-medium">
+                            Upload File
+                            <input type="file" class="hidden" accept="image/*" onchange="uploadFile(this, 'backdrop_url')">
+                        </label>
+                    </div>
+                    <div id="backdrop_url_progress_container" class="hidden w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                        <div id="backdrop_url_progress_bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div id="backdrop_url_status" class="text-xs text-blue-400 hidden"></div>
                 </div>
             </div>
             <div>
@@ -71,14 +88,20 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Video Sources (JSON Array)</label>
-                <div class="flex gap-2 mb-2">
-                    <label class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors text-sm font-medium">
-                        &#8679; Upload Video
-                        <input type="file" class="hidden" accept="video/*" onchange="uploadFile(this, 'video_sources', true)">
-                    </label>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Video URL *</label>
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="url" id="video_url" name="video_url" required class="flex-1 w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        <label class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors text-sm font-medium flex items-center justify-center whitespace-nowrap shadow-lg shadow-blue-600/20">
+                            &#8679; Upload Video
+                            <input type="file" class="hidden" accept="video/*" onchange="uploadFile(this, 'video_url')">
+                        </label>
+                    </div>
+                    <div id="video_url_progress_container" class="hidden w-full bg-gray-700 rounded-full h-1.5 mt-1">
+                        <div id="video_url_progress_bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div id="video_url_status" class="text-xs text-blue-400 hidden"></div>
                 </div>
-                <textarea id="video_sources" name="video_sources" rows="3" placeholder='[{"quality": "1080p", "url": "https://..."}]' class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 font-mono text-sm"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Subtitles (JSON Object)</label>
@@ -95,47 +118,134 @@
 </div>
 
 <script>
-async function uploadFile(inputElem, targetElemId, isJsonArray) {
+function uploadFile(inputElem, targetElemId) {
     const file = inputElem.files[0];
     if (!file) return;
     
     const targetInput = document.getElementById(targetElemId);
-    const oldVal = targetInput.value;
-    targetInput.value = "Uploading " + file.name + "... Please wait!";
+    const progressContainer = document.getElementById(targetElemId + '_progress_container');
+    const progressBar = document.getElementById(targetElemId + '_progress_bar');
+    const statusText = document.getElementById(targetElemId + '_status');
+    
+    // UI Reset
+    progressContainer.classList.remove('hidden');
+    statusText.classList.remove('hidden');
+    statusText.classList.remove('text-red-400', 'text-green-400');
+    statusText.classList.add('text-blue-400');
+    statusText.innerText = `Uploading ${file.name}... (0%)`;
+    progressBar.style.width = '0%';
+    progressBar.classList.replace('bg-red-500', 'bg-blue-500');
+    
     inputElem.parentElement.classList.add("opacity-50", "pointer-events-none");
     
     const formData = new FormData();
     formData.append("file", file);
     
-    try {
-        const res = await fetch("/admin/upload", {
-            method: "POST",
-            body: formData
-        });
-        
-        if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(txt);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/admin/upload", true);
+    
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percentComplete + '%';
+            statusText.innerText = `Uploading ${file.name}... (${percentComplete}%)`;
         }
+    };
+    
+    xhr.onload = function() {
+        inputElem.parentElement.classList.remove("opacity-50", "pointer-events-none");
         
-        const data = await res.json();
-        
-        if (data.url) {
-            if (isJsonArray) {
-                const json = JSON.stringify([{ "quality": "Original", "url": data.url }], null, 2);
-                targetInput.value = json;
-            } else {
-                targetInput.value = data.url;
+        if (xhr.status === 200) {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.url) {
+                    targetInput.value = data.url;
+                    statusText.classList.remove('text-blue-400');
+                    statusText.classList.add('text-green-400');
+                    statusText.innerText = `Upload complete!`;
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                        statusText.classList.add('hidden');
+                    }, 4000);
+                } else {
+                    throw new Error("Missing URL in response.");
+                }
+            } catch(err) {
+                showError("Invalid response from server.");
             }
         } else {
-            targetInput.value = oldVal;
-            alert("Upload failed.");
+            showError("Server responded with status: " + xhr.status);
+        }
+    };
+    
+    xhr.onerror = function() {
+        inputElem.parentElement.classList.remove("opacity-50", "pointer-events-none");
+        showError("Network error occurred during upload.");
+    };
+    
+    function showError(msg) {
+        statusText.classList.remove('text-blue-400');
+        statusText.classList.add('text-red-400');
+        statusText.innerText = `Upload failed: ${msg}`;
+        progressBar.classList.replace('bg-blue-500', 'bg-red-500');
+    }
+    
+    xhr.send(formData);
+}
+
+async function fetchTMDB() {
+    const titleInput = document.getElementById('title');
+    const title = titleInput.value.trim();
+    if (!title) {
+        alert("Please enter a movie title first!");
+        return;
+    }
+    
+    // Changing button text to loading state
+    const btn = event.currentTarget;
+    const oldHtml = btn.innerHTML;
+    btn.innerHTML = "Fetching...";
+    btn.disabled = true;
+    
+    const apiKey = "f7fbd6cefa7c8b56a3d592ce15db42cd";
+    
+    try {
+        const searchRes = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}&api_key=${apiKey}`);
+        const searchData = await searchRes.json();
+        
+        if (!searchData.results || searchData.results.length === 0) {
+            alert("No movie found on TMDB with that title.");
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+            return;
+        }
+        
+        const movie = searchData.results[0];
+        const detailRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${apiKey}&append_to_response=credits`);
+        const detailData = await detailRes.json();
+        
+        titleInput.value = detailData.title || movie.title;
+        document.querySelector('[name="description"]').value = detailData.overview || "";
+        document.querySelector('[name="release_date"]').value = detailData.release_date || "";
+        document.querySelector('[name="imdb_rating"]').value = detailData.vote_average ? detailData.vote_average.toFixed(1) : "";
+        
+        if (detailData.credits && detailData.credits.crew) {
+            const director = detailData.credits.crew.find(c => c.job === 'Director');
+            if (director) document.querySelector('[name="director"]').value = director.name;
+        }
+        
+        if (movie.poster_path) {
+            document.getElementById('poster_url').value = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+        }
+        if (movie.backdrop_path) {
+            document.getElementById('backdrop_url').value = `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}`;
         }
     } catch(e) {
-        targetInput.value = oldVal;
-        alert("Upload error: " + e.message);
+        alert("Failed to fetch data from TMDB: " + e.message);
     }
-    inputElem.parentElement.classList.remove("opacity-50", "pointer-events-none");
+    
+    btn.innerHTML = oldHtml;
+    btn.disabled = false;
 }
 </script>
 {{ end }}
