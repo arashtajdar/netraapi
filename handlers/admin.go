@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"netra-api/config"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}) {
@@ -72,15 +74,91 @@ func AdminMoviesFormView(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminSeriesView(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "admin_series.html", nil)
+	rows, err := config.DB.Query("SELECT id, title, rating FROM series ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var seriesList []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var title string
+		var rating sql.NullFloat64
+		err := rows.Scan(&id, &title, &rating)
+		if err == nil {
+			seriesList = append(seriesList, map[string]interface{}{
+				"ID":     id,
+				"Title":  title,
+				"Rating": rating.Float64,
+			})
+		}
+	}
+
+	renderTemplate(w, "admin_series.html", map[string]interface{}{"Series": seriesList})
 }
 
 func AdminLiveTVView(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "admin_livetv.html", nil)
+	rows, err := config.DB.Query("SELECT id, name, stream_url, logo_url, youtube_url FROM live_tv_channels ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var channels []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var name string
+		var streamUrl, logoUrl, youtubeUrl sql.NullString
+		err := rows.Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl)
+		if err == nil {
+			channels = append(channels, map[string]interface{}{
+				"ID":         id,
+				"Name":       name,
+				"StreamURL":  streamUrl.String,
+				"LogoURL":    logoUrl.String,
+				"YoutubeURL": youtubeUrl.String,
+			})
+		}
+	}
+
+	renderTemplate(w, "admin_livetv.html", map[string]interface{}{"Channels": channels})
 }
 
 func AdminSportsView(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "admin_sports.html", nil)
+	rows, err := config.DB.Query("SELECT id, title, is_live, start_time FROM sports_events ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var eventsList []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var title string
+		var isLive bool
+		var startTime sql.NullTime
+		err := rows.Scan(&id, &title, &isLive, &startTime)
+		if err == nil {
+			var stStr string
+			if startTime.Valid {
+				stStr = startTime.Time.Format("2006-01-02 15:04")
+			} else {
+				stStr = "N/A"
+			}
+			eventsList = append(eventsList, map[string]interface{}{
+				"ID":        id,
+				"Title":     title,
+				"IsLive":    isLive,
+				"StartTime": stStr,
+			})
+		}
+	}
+
+	renderTemplate(w, "admin_sports.html", map[string]interface{}{"Events": eventsList})
 }
 
 func AdminMoviesCreate(w http.ResponseWriter, r *http.Request) {
@@ -130,8 +208,9 @@ func AdminLiveTVCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	streamUrl := r.FormValue("stream_url")
 	logoUrl := r.FormValue("logo_url")
+	youtubeUrl := r.FormValue("youtube_url")
 
-	_, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url) VALUES (?, ?, NULLIF(?,''))`, name, streamUrl, logoUrl)
+	_, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`, name, streamUrl, logoUrl, youtubeUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -182,4 +261,18 @@ func AdminSeriesCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/admin/series", http.StatusSeeOther)
+}
+
+func AdminLiveTVDelete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "Missing channel ID", http.StatusBadRequest)
+		return
+	}
+	_, err := config.DB.Exec("DELETE FROM live_tv_channels WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, "Failed to delete channel: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
 }

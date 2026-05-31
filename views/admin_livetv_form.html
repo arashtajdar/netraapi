@@ -13,12 +13,16 @@
             <input type="text" name="name" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Stream URL (m3u8) *</label>
-            <input type="url" name="stream_url" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            <label class="block text-sm font-medium text-gray-400 mb-1">Stream URL (m3u8)</label>
+            <input type="url" name="stream_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/live.m3u8">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">YouTube Live URL (Alternative to m3u8)</label>
+            <input type="url" name="youtube_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/watch?v=dWqNgzZwspI">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label>
-            <input type="url" name="logo_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+            <input type="url" name="logo_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/logo.png">
         </div>
         <div class="pt-4 border-t border-gray-700 flex justify-end">
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">

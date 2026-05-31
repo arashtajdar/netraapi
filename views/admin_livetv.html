@@ -1,28 +1,46 @@
 {{ define "content" }}
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-white">Manage Live TV</h1>
-    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+    <a href="/admin/live-tv/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block">
         + Add Channel
-    </button>
+    </a>
 </div>
 <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-lg">
     <table class="w-full text-left border-collapse">
         <thead>
             <tr class="bg-gray-900/50 text-gray-400 text-sm uppercase tracking-wider">
                 <th class="p-4 font-semibold">Channel Name</th>
-                <th class="p-4 font-semibold">Stream URL</th>
+                <th class="p-4 font-semibold">Stream URL (m3u8)</th>
+                <th class="p-4 font-semibold">YouTube URL</th>
                 <th class="p-4 font-semibold">Actions</th>
             </tr>
         </thead>
         <tbody class="text-gray-200 text-sm divide-y divide-gray-700">
+            {{ range .Channels }}
             <tr class="hover:bg-gray-700/50 transition-colors">
-                <td class="p-4 font-medium">BBC News (Placeholder)</td>
-                <td class="p-4 text-gray-400 truncate max-w-xs">https://example.com/hls/stream.m3u8</td>
-                <td class="p-4 space-x-2">
+                <td class="p-4 font-medium flex items-center space-x-3">
+                    {{ if .LogoURL }}
+                    <img src="{{ .LogoURL }}" class="w-8 h-8 rounded object-cover" onerror="this.src='https://placehold.co/32?text=TV'">
+                    {{ else }}
+                    <div class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">TV</div>
+                    {{ end }}
+                    <span>{{ .Name }}</span>
+                </td>
+                <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .StreamURL }}{{ .StreamURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
+                <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .YoutubeURL }}{{ .YoutubeURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
+                <td class="p-4 space-x-3">
                     <button class="text-purple-400 hover:text-purple-300">EPG Schedule</button>
                     <button class="text-blue-400 hover:text-blue-300">Edit</button>
+                    <form action="/admin/live-tv/delete/{{ .ID }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this channel?');" class="inline">
+                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Remove</button>
+                    </form>
                 </td>
             </tr>
+            {{ else }}
+            <tr>
+                <td colspan="4" class="p-8 text-center text-gray-500">No channels added yet. Click "+ Add Channel" to add one.</td>
+            </tr>
+            {{ end }}
         </tbody>
     </table>
 </div>

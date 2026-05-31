@@ -86,11 +86,12 @@ type Episode struct {
 }
 
 type LiveTVChannel struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	StreamURL string    `json:"stream_url"`
-	LogoURL   *string   `json:"logo_url"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         int       `json:"id"`
+	Name       string    `json:"name"`
+	StreamURL  *string   `json:"stream_url"`
+	LogoURL    *string   `json:"logo_url"`
+	YoutubeURL *string   `json:"youtube_url"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type EPG struct {

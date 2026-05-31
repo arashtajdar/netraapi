@@ -7,6 +7,8 @@ import (
 
 	"netra-api/config"
 	"netra-api/models"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func GetMovies(w http.ResponseWriter, r *http.Request) {
@@ -96,3 +98,56 @@ func ResumePlayback(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Progress synchronized gracefully"})
 }
+
+func GetMovieDetail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, `{"error": "Missing movie ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	var m models.Movie
+	var desc, relDate, dir, poster, backdrop sql.NullString
+	var imdb, local sql.NullFloat64
+	var cast, vid, sub []byte
+	var introStart, introEnd sql.NullInt32
+
+	query := `SELECT id, title, description, release_date, director, cast_members, imdb_rating, local_rating, poster_url, backdrop_url, video_sources, subtitles, intro_start, intro_end, created_at, updated_at FROM movies WHERE id = ?`
+	err := config.DB.QueryRow(query, id).Scan(
+		&m.ID, &m.Title, &desc, &relDate, &dir,
+		&cast, &imdb, &local, &poster,
+		&backdrop, &vid, &sub, &introStart,
+		&introEnd, &m.CreatedAt, &m.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		http.Error(w, `{"error": "Movie not found"}`, http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
+		return
+	}
+
+	m.Description = desc.String
+	if relDate.Valid { m.ReleaseDate = &relDate.String }
+	if dir.Valid { m.Director = &dir.String }
+	if cast != nil { m.CastMembers = cast } else { m.CastMembers = []byte("[]") }
+	if imdb.Valid { m.IMDBRating = &imdb.Float64 }
+	if local.Valid { m.LocalRating = &local.Float64 }
+	if poster.Valid { m.PosterURL = &poster.String }
+	if backdrop.Valid { m.BackdropURL = &backdrop.String }
+	if vid != nil { m.VideoSources = vid } else { m.VideoSources = []byte("[]") }
+	if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
+	
+	if introStart.Valid { 
+		v := int(introStart.Int32)
+		m.IntroStart = &v 
+	}
+	if introEnd.Valid { 
+		v := int(introEnd.Int32)
+		m.IntroEnd = &v 
+	}
+
+	json.NewEncoder(w).Encode(m)
+}
+

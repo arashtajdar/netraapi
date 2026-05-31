@@ -17,8 +17,8 @@
         <div class="p-6">
             <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Netra Admin</h2>
         </div>
-        <nav class="mt-6 flex flex-col space-y-1 px-4">
-            <a href="/admin" class="px-4 py-2 bg-gray-700 rounded-lg font-medium text-white hover:bg-gray-600 transition-colors">Dashboard</a>
+        <nav id="admin-nav" class="mt-6 flex flex-col space-y-1 px-4">
+            <a href="/admin" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Dashboard</a>
             <a href="/admin/movies" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Movies</a>
             <a href="/admin/series" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Series</a>
             <a href="/admin/live-tv" class="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">Live TV</a>
@@ -32,5 +32,19 @@
             {{ template "content" . }}
         </div>
     </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const path = window.location.pathname;
+            const links = document.querySelectorAll('#admin-nav a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (path === href || (href !== '/admin' && path.startsWith(href))) {
+                    link.classList.remove('text-gray-400');
+                    link.classList.add('bg-gray-700', 'text-white', 'font-medium');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

@@ -64,7 +64,9 @@ func main() {
 
 		// Public catalog routes
 		r.Get("/movies", handlers.GetMovies)
+		r.Get("/movies/{id}", handlers.GetMovieDetail)
 		r.Get("/series", handlers.GetSeries)
+		r.Get("/series/{id}", handlers.GetSeriesDetail)
 		r.Get("/live-tv", handlers.GetLiveChannels)
 		r.Get("/sports", handlers.GetSportsEvents)
 
@@ -90,6 +92,7 @@ func main() {
 		r.Get("/live-tv", handlers.AdminLiveTVView)
 		r.Get("/live-tv/new", handlers.AdminLiveTVFormView)
 		r.Post("/live-tv/new", handlers.AdminLiveTVCreate)
+		r.Post("/live-tv/delete/{id}", handlers.AdminLiveTVDelete)
 		r.Get("/sports", handlers.AdminSportsView)
 		r.Get("/sports/new", handlers.AdminSportsFormView)
 		r.Post("/sports/new", handlers.AdminSportsCreate)

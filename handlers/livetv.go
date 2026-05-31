@@ -9,7 +9,7 @@ import (
 
 func GetLiveChannels(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	query := `SELECT id, name, stream_url, logo_url, created_at FROM live_tv_channels`
+	query := `SELECT id, name, stream_url, logo_url, youtube_url, created_at FROM live_tv_channels`
 	rows, err := config.DB.Query(query)
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
@@ -20,7 +20,7 @@ func GetLiveChannels(w http.ResponseWriter, r *http.Request) {
 	var channels []models.LiveTVChannel
 	for rows.Next() {
 		var c models.LiveTVChannel
-		if err := rows.Scan(&c.ID, &c.Name, &c.StreamURL, &c.LogoURL, &c.CreatedAt); err == nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.CreatedAt); err == nil {
 			channels = append(channels, c)
 		}
 	}
