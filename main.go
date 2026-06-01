@@ -92,6 +92,8 @@ func main() {
 		r.Get("/live-tv", handlers.AdminLiveTVView)
 		r.Get("/live-tv/new", handlers.AdminLiveTVFormView)
 		r.Post("/live-tv/new", handlers.AdminLiveTVCreate)
+		r.Get("/live-tv/edit/{id}", handlers.AdminLiveTVEditFormView)
+		r.Post("/live-tv/edit/{id}", handlers.AdminLiveTVUpdate)
 		r.Post("/live-tv/delete/{id}", handlers.AdminLiveTVDelete)
 		r.Get("/sports", handlers.AdminSportsView)
 		r.Get("/sports/new", handlers.AdminSportsFormView)

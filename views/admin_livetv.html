@@ -29,8 +29,7 @@
                 <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .StreamURL }}{{ .StreamURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
                 <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .YoutubeURL }}{{ .YoutubeURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
                 <td class="p-4 space-x-3">
-                    <button class="text-purple-400 hover:text-purple-300">EPG Schedule</button>
-                    <button class="text-blue-400 hover:text-blue-300">Edit</button>
+                    <a href="/admin/live-tv/edit/{{ .ID }}" class="text-blue-400 hover:text-blue-300">Edit</a>
                     <form action="/admin/live-tv/delete/{{ .ID }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this channel?');" class="inline">
                         <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Remove</button>
                     </form>

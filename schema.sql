@@ -89,8 +89,9 @@ CREATE TABLE IF NOT EXISTS episodes (
 CREATE TABLE IF NOT EXISTS live_tv_channels (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    stream_url VARCHAR(512) NOT NULL,
+    stream_url VARCHAR(512),
     logo_url VARCHAR(512),
+    youtube_url VARCHAR(512),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

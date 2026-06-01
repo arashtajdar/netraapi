@@ -91,6 +91,7 @@ type LiveTVChannel struct {
 	StreamURL  *string   `json:"stream_url"`
 	LogoURL    *string   `json:"logo_url"`
 	YoutubeURL *string   `json:"youtube_url"`
+	EPG        []EPG     `json:"epg"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 

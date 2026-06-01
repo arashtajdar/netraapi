@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	"netra-api/config"
 
@@ -210,11 +212,131 @@ func AdminLiveTVCreate(w http.ResponseWriter, r *http.Request) {
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
 
-	_, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`, name, streamUrl, logoUrl, youtubeUrl)
+	res, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`, name, streamUrl, logoUrl, youtubeUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	channelID, _ := res.LastInsertId()
+	saveEPG(channelID, r.FormValue("epg_data"))
+
+	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
+}
+
+type EPGData struct {
+	ProgramTitle string `json:"program_title"`
+	Description  string `json:"description"`
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+}
+
+func saveEPG(channelID int64, epgJSON string) {
+	if epgJSON == "" || epgJSON == "[]" {
+		config.DB.Exec("DELETE FROM epg WHERE channel_id = ?", channelID)
+		return
+	}
+	var epg []EPGData
+	err := json.Unmarshal([]byte(epgJSON), &epg)
+	if err != nil {
+		log.Println("Invalid EPG JSON:", err)
+		return
+	}
+	config.DB.Exec("DELETE FROM epg WHERE channel_id = ?", channelID)
+	for _, item := range epg {
+		// Convert ISO8601 strings to MySQL expected format or leave to driver
+		var startStr, endStr interface{}
+		if t, err := time.Parse(time.RFC3339, item.StartTime); err == nil {
+			startStr = t.Format("2006-01-02 15:04:05")
+		} else {
+			startStr = item.StartTime // fallback
+		}
+		if t, err := time.Parse(time.RFC3339, item.EndTime); err == nil {
+			endStr = t.Format("2006-01-02 15:04:05")
+		} else {
+			endStr = item.EndTime // fallback
+		}
+
+		config.DB.Exec("INSERT INTO epg (channel_id, program_title, description, start_time, end_time) VALUES (?, ?, ?, ?, ?)",
+			channelID, item.ProgramTitle, item.Description, startStr, endStr)
+	}
+}
+
+func getEPG(channelID int) string {
+	rows, err := config.DB.Query("SELECT program_title, description, start_time, end_time FROM epg WHERE channel_id = ? ORDER BY start_time ASC", channelID)
+	if err != nil {
+		return "[]"
+	}
+	defer rows.Close()
+	var epg []EPGData
+	for rows.Next() {
+		var item EPGData
+		var start, end []byte
+		var desc sql.NullString
+		if err := rows.Scan(&item.ProgramTitle, &desc, &start, &end); err == nil {
+			item.Description = desc.String
+			// start and end are []byte from MySQL timestamp
+			tStart, _ := time.Parse("2006-01-02 15:04:05", string(start))
+			tEnd, _ := time.Parse("2006-01-02 15:04:05", string(end))
+			item.StartTime = tStart.Format(time.RFC3339)
+			item.EndTime = tEnd.Format(time.RFC3339)
+			if item.StartTime == "0001-01-01T00:00:00Z" {
+				item.StartTime = string(start)
+			}
+			if item.EndTime == "0001-01-01T00:00:00Z" {
+				item.EndTime = string(end)
+			}
+			epg = append(epg, item)
+		}
+	}
+	if len(epg) == 0 {
+		return "[]"
+	}
+	b, _ := json.MarshalIndent(epg, "", "  ")
+	return string(b)
+}
+
+func AdminLiveTVEditFormView(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var channel map[string]interface{}
+	var name, streamUrl, logoUrl, youtubeUrl sql.NullString
+	err := config.DB.QueryRow("SELECT id, name, stream_url, logo_url, youtube_url FROM live_tv_channels WHERE id = ?", id).Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl)
+	if err == nil {
+		channelID := 0
+		fmt.Sscanf(id, "%d", &channelID)
+		epgData := getEPG(channelID)
+		channel = map[string]interface{}{
+			"ID":         id,
+			"Name":       name.String,
+			"StreamURL":  streamUrl.String,
+			"LogoURL":    logoUrl.String,
+			"YoutubeURL": youtubeUrl.String,
+			"EPGData":    epgData,
+		}
+	} else {
+		http.Error(w, "Channel not found", http.StatusNotFound)
+		return
+	}
+	renderTemplate(w, "admin_livetv_form.html", map[string]interface{}{"Channel": channel})
+}
+
+func AdminLiveTVUpdate(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	r.ParseForm()
+	name := r.FormValue("name")
+	streamUrl := r.FormValue("stream_url")
+	logoUrl := r.FormValue("logo_url")
+	youtubeUrl := r.FormValue("youtube_url")
+
+	_, err := config.DB.Exec(`UPDATE live_tv_channels SET name=?, stream_url=NULLIF(?,''), logo_url=NULLIF(?,''), youtube_url=NULLIF(?,'') WHERE id=?`, name, streamUrl, logoUrl, youtubeUrl, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	var channelID int64
+	fmt.Sscanf(id, "%d", &channelID)
+	saveEPG(channelID, r.FormValue("epg_data"))
+
 	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
 }
 
