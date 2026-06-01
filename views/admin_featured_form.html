@@ -1,0 +1,36 @@
+{{ define "content" }}
+<div class="mb-6">
+    <a href="/admin/featured" class="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 mb-4">
+        <span>&larr;</span> Back to Featured Items
+    </a>
+    <h1 class="text-3xl font-bold text-white">Add Featured Item</h1>
+</div>
+
+<div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6 max-w-2xl">
+    <form action="/admin/featured/new" method="POST" class="space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Content Type *</label>
+            <select name="content_type" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                <option value="movie">Movie</option>
+                <option value="series">Series</option>
+                <option value="live_tv">Live TV Channel</option>
+                <option value="sports">Sports Event</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Content ID *</label>
+            <input type="number" name="content_id" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="Enter the exact numeric ID of the content">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Custom Description (Optional)</label>
+            <textarea name="custom_description" rows="3" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="A special description specifically for the top banner overlay. If left blank, it will fall back to default behavior."></textarea>
+        </div>
+        
+        <div class="pt-4 border-t border-gray-700 flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                Add to Featured
+            </button>
+        </div>
+    </form>
+</div>
+{{ end }}

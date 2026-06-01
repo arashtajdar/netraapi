@@ -6,7 +6,7 @@
     <h1 class="text-3xl font-bold text-white">{{ if .Channel }}Edit{{ else }}Add New{{ end }} Live TV Channel</h1>
 </div>
 
-<div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6 max-w-2xl">
+<div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg p-6 max-w-5xl w-full mx-auto">
     <form action="{{ if .Channel }}/admin/live-tv/edit/{{ .Channel.ID }}{{ else }}/admin/live-tv/new{{ end }}" method="POST" class="space-y-6">
         <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Channel Name *</label>
@@ -24,10 +24,33 @@
             <label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label>
             <input type="url" name="logo_url" value="{{ if .Channel }}{{ .Channel.LogoURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/logo.png">
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">EPG Data (JSON Array)</label>
-            <p class="text-xs text-gray-500 mb-2">Format: [{"program_title": "News", "description": "...", "start_time": "2026-06-01T09:00:00Z", "end_time": "2026-06-01T10:00:00Z"}]</p>
-            <textarea name="epg_data" rows="6" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 font-mono text-sm">{{ if .Channel }}{{ .Channel.EPGData }}{{ end }}</textarea>
+        <div class="mt-8 border-t border-gray-700 pt-6">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                <div>
+                    <label class="block text-lg font-medium text-white mb-1">Electronic Program Guide (EPG)</label>
+                    <p class="text-sm text-gray-400">Manage the TV schedule. Past dates are automatically hidden.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="date" id="new-date-input" class="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <button type="button" onclick="addNewDate()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Add Date
+                    </button>
+                </div>
+            </div>
+            <textarea id="epg_data" name="epg_data" class="hidden">{{ if .Channel }}{{ .Channel.EPGData }}{{ else }}[]{{ end }}</textarea>
+            
+            <div class="flex flex-col md:flex-row gap-6 items-start">
+                <!-- Sidebar Tabs -->
+                <div class="w-full md:w-56 shrink-0 bg-gray-900 border border-gray-700 rounded-xl p-2 space-y-1 shadow-inner max-h-[600px] overflow-y-auto" id="epg-tabs">
+                    <!-- Date Tabs will be rendered here -->
+                </div>
+                
+                <!-- Content Area -->
+                <div class="flex-1 w-full" id="epg-content">
+                    <!-- Programs for selected date will be rendered here -->
+                </div>
+            </div>
         </div>
         <div class="pt-4 border-t border-gray-700 flex justify-end">
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
@@ -36,4 +59,254 @@
         </div>
     </form>
 </div>
+<script>
+    const epgInput = document.getElementById('epg_data');
+    const tabsContainer = document.getElementById('epg-tabs');
+    const contentContainer = document.getElementById('epg-content');
+    
+    let programs = [];
+    let activeDates = new Set();
+    let activeTabDate = null;
+    
+    function initEPG() {
+        try {
+            const raw = epgInput.value.trim();
+            if (raw) programs = JSON.parse(raw);
+        } catch(e) {
+            console.error("Failed to parse EPG data", e);
+            programs = [];
+        }
+
+        const now = new Date();
+        const todayDateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+        // Filter out past programs and populate activeDates
+        programs = programs.filter(p => {
+            if (!p.start_time) return false;
+            const dStr = p.start_time.split('T')[0];
+            if (dStr >= todayDateStr) {
+                activeDates.add(dStr);
+                return true;
+            }
+            return false;
+        });
+
+        // Set default date picker value
+        document.getElementById('new-date-input').value = todayDateStr;
+
+        if (activeDates.size === 0) {
+            activeDates.add(todayDateStr);
+        }
+        
+        activeTabDate = todayDateStr;
+
+        syncAndRender();
+    }
+
+    function syncAndRender() {
+        programs.sort((a, b) => new Date(a.start_time || 0) - new Date(b.start_time || 0));
+        
+        programs.forEach(p => {
+            if (p.start_time) {
+                activeDates.add(p.start_time.split('T')[0]);
+            }
+        });
+
+        epgInput.value = JSON.stringify(programs);
+        render();
+    }
+
+    function addNewDate() {
+        const input = document.getElementById('new-date-input');
+        const d = input.value;
+        if (d) {
+            activeDates.add(d);
+            activeTabDate = d;
+            syncAndRender();
+        }
+    }
+
+    function selectTab(dateStr) {
+        activeTabDate = dateStr;
+        render();
+    }
+
+    function addProgramToDate(dateStr) {
+        programs.push({
+            program_title: "New Program",
+            description: "",
+            start_time: dateStr + "T00:00:00Z",
+            end_time: dateStr + "T01:00:00Z"
+        });
+        syncAndRender();
+    }
+
+    function removeProgram(index) {
+        programs.splice(index, 1);
+        syncAndRender();
+    }
+
+    function updateProgram(index, field, value) {
+        if (field === 'start_time' || field === 'end_time') {
+            programs[index][field] = value ? value + ":00Z" : "";
+        } else {
+            programs[index][field] = value;
+        }
+        epgInput.value = JSON.stringify(programs);
+    }
+
+    function forceRender() {
+        syncAndRender();
+    }
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+    }
+
+    function formatDateShort(dateStr) {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    }
+
+    function getInputValue(isoString) {
+        if (!isoString) return "";
+        return isoString.replace("Z", "").slice(0, 16); 
+    }
+
+    function render() {
+        tabsContainer.innerHTML = "";
+        contentContainer.innerHTML = "";
+        
+        const sortedDates = Array.from(activeDates).sort();
+
+        if (sortedDates.length === 0) {
+            tabsContainer.classList.add("hidden");
+            contentContainer.innerHTML = `<div class="text-gray-500 italic p-6 border-2 border-dashed border-gray-700 rounded-xl text-center">No EPG dates available. Add a date to begin.</div>`;
+            return;
+        } else {
+            tabsContainer.classList.remove("hidden");
+        }
+
+        if (!activeTabDate || !activeDates.has(activeTabDate)) {
+            activeTabDate = sortedDates.includes(document.getElementById('new-date-input').value) 
+                ? document.getElementById('new-date-input').value 
+                : sortedDates[0];
+        }
+
+        // Render Tabs
+        sortedDates.forEach(dateStr => {
+            const isActive = dateStr === activeTabDate;
+            const btn = document.createElement('button');
+            btn.type = "button";
+            btn.onclick = () => selectTab(dateStr);
+            btn.className = `w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-between outline-none focus:ring-2 focus:ring-blue-500/50 ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`;
+            
+            btn.innerHTML = `
+                <span>${formatDateShort(dateStr)}</span>
+                <svg class="w-4 h-4 ${isActive ? 'text-blue-200' : 'hidden'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            `;
+            tabsContainer.appendChild(btn);
+        });
+
+        // Render Content for activeTabDate
+        const dateGroup = document.createElement('div');
+        dateGroup.className = "bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden";
+        
+        const header = document.createElement('div');
+        header.className = "bg-gray-900 px-5 py-4 border-b border-gray-700 font-semibold text-gray-200 flex justify-between items-center";
+        header.innerHTML = `
+            <div class="flex items-center gap-3 text-lg">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                ${formatDate(activeTabDate)}
+            </div>
+            <button type="button" onclick="addProgramToDate('${activeTabDate}')" class="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Program
+            </button>
+        `;
+        dateGroup.appendChild(header);
+
+        const rowContainer = document.createElement('div');
+        rowContainer.className = "divide-y divide-gray-700/50";
+        
+        const datePrograms = programs.map((p, i) => ({ program: p, index: i }))
+                                     .filter(item => item.program.start_time && item.program.start_time.startsWith(activeTabDate));
+
+        if (datePrograms.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = "p-8 text-sm text-gray-400 text-center italic bg-gray-800/50";
+            empty.innerHTML = `
+                <div class="mb-2">No programs scheduled for ${formatDateShort(activeTabDate)}.</div>
+                <button type="button" onclick="addProgramToDate('${activeTabDate}')" class="text-blue-400 hover:text-blue-300 underline">Add the first program</button>
+            `;
+            rowContainer.appendChild(empty);
+        } else {
+            let lastEndGlobal = null;
+            datePrograms.forEach(item => {
+                const p = item.program;
+                const i = item.index;
+                
+                const currentStart = new Date(p.start_time).getTime();
+                const currentEnd = new Date(p.end_time).getTime();
+                
+                let isOverlap = false;
+                if (lastEndGlobal && currentStart < lastEndGlobal && !isNaN(currentStart) && !isNaN(lastEndGlobal)) {
+                    isOverlap = true;
+                }
+                if (!isNaN(currentEnd)) {
+                    lastEndGlobal = currentEnd > lastEndGlobal ? currentEnd : lastEndGlobal;
+                }
+
+                const row = document.createElement('div');
+                row.className = "p-5 grid grid-cols-1 xl:grid-cols-12 gap-5 items-start relative hover:bg-gray-700/20 transition-colors group";
+                if (isOverlap) {
+                    row.classList.add("bg-red-900/10");
+                }
+
+                row.innerHTML = `
+                    <div class="xl:col-span-3 space-y-1.5">
+                        <label class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold block">Start Time (UTC)</label>
+                        <input type="datetime-local" value="${getInputValue(p.start_time)}" 
+                            onchange="updateProgram(${i}, 'start_time', this.value); forceRender()"
+                            class="w-full bg-gray-900 border ${isOverlap ? 'border-red-500/50' : 'border-gray-600'} rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    </div>
+                    <div class="xl:col-span-3 space-y-1.5">
+                        <label class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold block">End Time (UTC)</label>
+                        <input type="datetime-local" value="${getInputValue(p.end_time)}" 
+                            onchange="updateProgram(${i}, 'end_time', this.value); forceRender()"
+                            class="w-full bg-gray-900 border ${isOverlap ? 'border-red-500/50' : 'border-gray-600'} rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                    </div>
+                    <div class="xl:col-span-5 space-y-3">
+                        <div>
+                            <label class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold block mb-1">Program Title</label>
+                            <input type="text" value="${(p.program_title||'').replace(/"/g, '&quot;')}" placeholder="e.g. Morning News"
+                                onchange="updateProgram(${i}, 'program_title', this.value)"
+                                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-gray-400 uppercase tracking-wider font-semibold block mb-1">Description</label>
+                            <input type="text" value="${(p.description||'').replace(/"/g, '&quot;')}" placeholder="Program description..."
+                                onchange="updateProgram(${i}, 'description', this.value)"
+                                class="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+                        </div>
+                    </div>
+                    <div class="xl:col-span-1 flex justify-end items-center h-full pt-[26px]">
+                        <button type="button" onclick="removeProgram(${i})" class="text-gray-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Remove Program">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    ${isOverlap ? '<div class="absolute top-2 right-4 text-[11px] text-red-400 font-bold uppercase flex items-center gap-1 bg-red-500/10 px-2 py-0.5 rounded"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Time Overlap</div>' : ''}
+                `;
+                rowContainer.appendChild(row);
+            });
+        }
+        dateGroup.appendChild(rowContainer);
+        contentContainer.appendChild(dateGroup);
+    }
+
+    initEPG();
+</script>
 {{ end }}

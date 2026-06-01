@@ -140,3 +140,11 @@ CREATE TABLE IF NOT EXISTS watch_party_rooms (
     FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (current_movie_id) REFERENCES movies(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS featured_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content_type ENUM('movie', 'series', 'live_tv', 'sports') NOT NULL,
+    content_id INT NOT NULL,
+    custom_description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

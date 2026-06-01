@@ -63,6 +63,7 @@ func main() {
 
 
 		// Public catalog routes
+		r.Get("/featured", handlers.GetFeatured)
 		r.Get("/movies", handlers.GetMovies)
 		r.Get("/movies/{id}", handlers.GetMovieDetail)
 		r.Get("/series", handlers.GetSeries)
@@ -98,6 +99,18 @@ func main() {
 		r.Get("/sports", handlers.AdminSportsView)
 		r.Get("/sports/new", handlers.AdminSportsFormView)
 		r.Post("/sports/new", handlers.AdminSportsCreate)
+		
+		// Users
+		r.Get("/users", handlers.AdminUsersView)
+		r.Get("/users/edit/{id}", handlers.AdminUsersEditFormView)
+		r.Post("/users/edit/{id}", handlers.AdminUsersUpdate)
+		r.Post("/users/delete/{id}", handlers.AdminUsersDelete)
+		
+		// Featured
+		r.Get("/featured", handlers.AdminFeaturedView)
+		r.Get("/featured/new", handlers.AdminFeaturedFormView)
+		r.Post("/featured/new", handlers.AdminFeaturedCreate)
+		r.Post("/featured/delete/{id}", handlers.AdminFeaturedDelete)
 	})
     
 	r.Get("/ws/party", websockets.ServeWS(hub))
