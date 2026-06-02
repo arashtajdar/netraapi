@@ -1,0 +1,35 @@
+{{ define "content" }}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-white">Music Content</h1>
+    <a href="/admin/music/new" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg transition-transform hover:scale-105">
+        + Add Music
+    </a>
+</div>
+
+<div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <table class="w-full text-left border-collapse">
+        <thead>
+            <tr class="bg-gray-900/50 border-b border-gray-700">
+                <th class="py-4 px-6 text-sm font-medium text-gray-400">ID</th>
+                <th class="py-4 px-6 text-sm font-medium text-gray-400">Title</th>
+                <th class="py-4 px-6 text-sm font-medium text-gray-400">Artist</th>
+                <th class="py-4 px-6 text-sm font-medium text-gray-400 text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-700/50">
+            {{ range .Music }}
+            <tr class="hover:bg-gray-700/30 transition-colors">
+                <td class="py-4 px-6 text-gray-300">#{{ .ID }}</td>
+                <td class="py-4 px-6 font-medium text-white">{{ .Title }}</td>
+                <td class="py-4 px-6 text-gray-300">{{ .Artist }}</td>
+                <td class="py-4 px-6 text-right space-x-3">
+                    <form action="/admin/music/delete/{{ .ID }}" method="POST" class="inline" onsubmit="return confirm('Delete this content?');">
+                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors font-medium text-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+</div>
+{{ end }}

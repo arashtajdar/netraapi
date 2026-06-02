@@ -71,8 +71,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	var hash string
 
-	query := `SELECT id, username, email, password_hash, virtual_coins FROM users WHERE email = ?`
-	err := config.DB.QueryRow(query, input.Email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins)
+	query := `SELECT id, username, email, password_hash, virtual_coins, user_level FROM users WHERE email = ?`
+	err := config.DB.QueryRow(query, input.Email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins, &user.UserLevel)
 	if err == sql.ErrNoRows {
 		http.Error(w, `{"error": "Invalid credentials"}`, http.StatusUnauthorized)
 		return
@@ -165,8 +165,8 @@ func GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	var hash string
 
-	query := `SELECT id, username, email, password_hash, virtual_coins FROM users WHERE email = ?`
-	err := config.DB.QueryRow(query, email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins)
+	query := `SELECT id, username, email, password_hash, virtual_coins, user_level FROM users WHERE email = ?`
+	err := config.DB.QueryRow(query, email).Scan(&user.ID, &user.Username, &user.Email, &hash, &user.VirtualCoins, &user.UserLevel)
 
 	if err == sql.ErrNoRows {
 		// Register user

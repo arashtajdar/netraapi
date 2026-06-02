@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"netra-api/config"
@@ -397,4 +398,147 @@ func AdminLiveTVDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
+}
+
+func AdminSettingsView(w http.ResponseWriter, r *http.Request) {
+	var upNextTimer, frontendMenu string
+	config.DB.QueryRow("SELECT setting_value FROM app_settings WHERE setting_key = 'up_next_timer'").Scan(&upNextTimer)
+	config.DB.QueryRow("SELECT setting_value FROM app_settings WHERE setting_key = 'frontend_menu'").Scan(&frontendMenu)
+	
+	// Remove surrounding quotes for timer if present
+	if len(upNextTimer) >= 2 && upNextTimer[0] == '"' && upNextTimer[len(upNextTimer)-1] == '"' {
+		upNextTimer = upNextTimer[1 : len(upNextTimer)-1]
+	}
+
+	data := map[string]interface{}{
+		"UpNextTimer": upNextTimer,
+		"FrontendMenu": frontendMenu,
+	}
+	renderTemplate(w, "admin_settings.html", data)
+}
+
+func AdminSettingsUpdate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	timer := r.FormValue("up_next_timer")
+	menu := r.FormValue("frontend_menu")
+	
+	config.DB.Exec("UPDATE app_settings SET setting_value = ? WHERE setting_key = 'up_next_timer'", fmt.Sprintf(`"%s"`, timer))
+	config.DB.Exec("UPDATE app_settings SET setting_value = ? WHERE setting_key = 'frontend_menu'", menu)
+	
+	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+}
+
+func AdminMusicView(w http.ResponseWriter, r *http.Request) {
+	rows, err := config.DB.Query("SELECT id, title, artist FROM music_content ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var music []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var title string
+		var artist sql.NullString
+		if err := rows.Scan(&id, &title, &artist); err == nil {
+			music = append(music, map[string]interface{}{
+				"ID":     id,
+				"Title":  title,
+				"Artist": artist.String,
+			})
+		}
+	}
+	renderTemplate(w, "admin_music.html", map[string]interface{}{"Music": music})
+}
+
+func AdminMusicFormView(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "admin_music_form.html", nil)
+}
+
+func AdminMusicCreate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	title := r.FormValue("title")
+	artist := r.FormValue("artist")
+	desc := r.FormValue("description")
+	releaseDate := r.FormValue("release_date")
+	posterUrl := r.FormValue("poster_url")
+	backdropUrl := r.FormValue("backdrop_url")
+	videoUrl := r.FormValue("video_url")
+	
+	vidSrc := "[]"
+	if videoUrl != "" {
+		vidSrc = fmt.Sprintf(`[{"quality": "Original", "url": "%s"}]`, videoUrl)
+	}
+
+	_, err := config.DB.Exec(`INSERT INTO music_content (title, description, artist, release_date, poster_url, backdrop_url, video_sources) 
+		VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), ?)`, 
+		title, desc, artist, releaseDate, posterUrl, backdropUrl, vidSrc)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/admin/music", http.StatusSeeOther)
+}
+
+func AdminMusicDelete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id != "" {
+		config.DB.Exec("DELETE FROM music_content WHERE id = ?", id)
+	}
+	http.Redirect(w, r, "/admin/music", http.StatusSeeOther)
+}
+
+func AdminCategoriesView(w http.ResponseWriter, r *http.Request) {
+    types := []string{"movie", "series", "live_tv", "sports", "music"}
+    categoriesByType := make(map[string][]map[string]interface{})
+
+    for _, t := range types {
+        tableName := t + "_categories"
+        rows, err := config.DB.Query(fmt.Sprintf("SELECT id, name, slug FROM %s ORDER BY name ASC", tableName))
+        if err == nil {
+            var cats []map[string]interface{}
+            for rows.Next() {
+                var id int
+                var name, slug string
+                rows.Scan(&id, &name, &slug)
+                cats = append(cats, map[string]interface{}{
+                    "ID": id,
+                    "Name": name,
+                    "Slug": slug,
+                })
+            }
+            rows.Close()
+            categoriesByType[t] = cats
+        }
+    }
+
+    renderTemplate(w, "admin_categories.html", map[string]interface{}{
+        "CategoriesByType": categoriesByType,
+    })
+}
+
+func AdminCategoryCreate(w http.ResponseWriter, r *http.Request) {
+    r.ParseForm()
+    t := r.FormValue("type")
+    name := r.FormValue("name")
+    
+    if t != "" && name != "" {
+        slug := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
+        tableName := t + "_categories"
+        config.DB.Exec(fmt.Sprintf("INSERT IGNORE INTO %s (name, slug) VALUES (?, ?)", tableName), name, slug)
+    }
+    http.Redirect(w, r, "/admin/categories", http.StatusSeeOther)
+}
+
+func AdminCategoryDelete(w http.ResponseWriter, r *http.Request) {
+    r.ParseForm()
+    t := r.FormValue("type")
+    id := r.FormValue("id")
+    
+    if t != "" && id != "" {
+        tableName := t + "_categories"
+        config.DB.Exec(fmt.Sprintf("DELETE FROM %s WHERE id = ?", tableName), id)
+    }
+    http.Redirect(w, r, "/admin/categories", http.StatusSeeOther)
 }

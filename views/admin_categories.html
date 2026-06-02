@@ -1,0 +1,41 @@
+{{ define "content" }}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-white">Categories Management</h1>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {{ range $type, $categories := .CategoriesByType }}
+    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-xl">
+        <div class="bg-gray-900/50 p-4 border-b border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-white capitalize">{{ $type }} Categories</h2>
+        </div>
+        
+        <div class="p-4 border-b border-gray-700">
+            <form action="/admin/categories/new" method="POST" class="flex gap-2">
+                <input type="hidden" name="type" value="{{ $type }}">
+                <input type="text" name="name" placeholder="New Category Name" required class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+                <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm font-medium rounded-lg shadow-lg">Add</button>
+            </form>
+        </div>
+
+        <ul class="divide-y divide-gray-700/50 max-h-64 overflow-y-auto">
+            {{ range $categories }}
+            <li class="flex justify-between items-center p-4 hover:bg-gray-700/30 transition-colors">
+                <div>
+                    <p class="font-medium text-white">{{ .Name }}</p>
+                    <p class="text-xs text-gray-400">{{ .Slug }}</p>
+                </div>
+                <form action="/admin/categories/delete" method="POST" onsubmit="return confirm('Delete this category?');">
+                    <input type="hidden" name="type" value="{{ $type }}">
+                    <input type="hidden" name="id" value="{{ .ID }}">
+                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors text-sm font-medium">Delete</button>
+                </form>
+            </li>
+            {{ else }}
+            <li class="p-4 text-gray-400 text-sm italic">No categories found.</li>
+            {{ end }}
+        </ul>
+    </div>
+    {{ end }}
+</div>
+{{ end }}

@@ -1,0 +1,25 @@
+{{ define "content" }}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-white">Global Settings</h1>
+</div>
+
+<div class="bg-gray-800 rounded-xl border border-gray-700 p-6 shadow-xl max-w-4xl">
+    <form action="/admin/settings" method="POST" class="space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Up Next Timer (seconds)</label>
+            <input type="number" name="up_next_timer" value="{{ .UpNextTimer }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
+            <p class="text-xs text-gray-400 mt-2">The duration before auto-playing the next recommended content.</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Frontend Menu Layout (JSON)</label>
+            <textarea name="frontend_menu" rows="10" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-mono text-sm">{{ .FrontendMenu }}</textarea>
+            <p class="text-xs text-gray-400 mt-2">Example: <code>[{"label":"Movies", "path":"/movies", "level_required": 2, "order": 1, "enabled": true}]</code></p>
+        </div>
+
+        <div class="pt-4 border-t border-gray-700 flex justify-end">
+            <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg">Save Settings</button>
+        </div>
+    </form>
+</div>
+{{ end }}

@@ -4,7 +4,10 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     virtual_coins INT DEFAULT 500,
-    profile_data JSON,
+    user_level INT DEFAULT 1,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    avatar_url VARCHAR(512),
     settings JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email)
@@ -41,7 +44,7 @@ CREATE TABLE IF NOT EXISTS movies (
 CREATE TABLE IF NOT EXISTS watchlist_items (
     watchlist_id INT NOT NULL,
     content_id INT NOT NULL,
-    content_type ENUM('movie', 'series') NOT NULL,
+    content_type ENUM('movie', 'series', 'music') NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (watchlist_id, content_id, content_type),
     FOREIGN KEY (watchlist_id) REFERENCES watchlists(id) ON DELETE CASCADE
@@ -143,8 +146,101 @@ CREATE TABLE IF NOT EXISTS watch_party_rooms (
 
 CREATE TABLE IF NOT EXISTS featured_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    content_type ENUM('movie', 'series', 'live_tv', 'sports') NOT NULL,
+    content_type ENUM('movie', 'series', 'live_tv', 'sports', 'music') NOT NULL,
     content_id INT NOT NULL,
     custom_description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key VARCHAR(255) UNIQUE NOT NULL,
+    setting_value JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY(setting_key)
+);
+
+CREATE TABLE IF NOT EXISTS music_content (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    artist VARCHAR(255),
+    video_sources JSON,
+    audio_sources JSON,
+    poster_url VARCHAR(512),
+    backdrop_url VARCHAR(512),
+    release_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Categories and Mappings
+CREATE TABLE IF NOT EXISTS movie_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS movie_category_mapping (
+    movie_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (movie_id, category_id),
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES movie_categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS series_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS series_category_mapping (
+    series_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (series_id, category_id),
+    FOREIGN KEY (series_id) REFERENCES series(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES series_categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS live_tv_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS live_tv_category_mapping (
+    channel_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (channel_id, category_id),
+    FOREIGN KEY (channel_id) REFERENCES live_tv_channels(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES live_tv_categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sports_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sports_category_mapping (
+    event_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (event_id, category_id),
+    FOREIGN KEY (event_id) REFERENCES sports_events(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES sports_categories(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS music_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS music_category_mapping (
+    music_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (music_id, category_id),
+    FOREIGN KEY (music_id) REFERENCES music_content(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES music_categories(id) ON DELETE CASCADE
 );

@@ -61,6 +61,9 @@ func main() {
 		r.Post("/auth/google", handlers.GoogleLogin)
 
 
+		// Settings and Up Next
+		r.Get("/settings/menu", handlers.GetSettings)
+		r.Get("/content/up-next", handlers.GetUpNext)
 
 		// Public catalog routes
 		r.Get("/featured", handlers.GetFeatured)
@@ -70,6 +73,8 @@ func main() {
 		r.Get("/series/{id}", handlers.GetSeriesDetail)
 		r.Get("/live-tv", handlers.GetLiveChannels)
 		r.Get("/sports", handlers.GetSportsEvents)
+		r.Get("/music", handlers.GetMusic)
+		r.Get("/music/{id}", handlers.GetMusicDetail)
 
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
@@ -111,6 +116,21 @@ func main() {
 		r.Get("/featured/new", handlers.AdminFeaturedFormView)
 		r.Post("/featured/new", handlers.AdminFeaturedCreate)
 		r.Post("/featured/delete/{id}", handlers.AdminFeaturedDelete)
+
+		// Music
+		r.Get("/music", handlers.AdminMusicView)
+		r.Get("/music/new", handlers.AdminMusicFormView)
+		r.Post("/music/new", handlers.AdminMusicCreate)
+		r.Post("/music/delete/{id}", handlers.AdminMusicDelete)
+
+		// Settings
+		r.Get("/settings", handlers.AdminSettingsView)
+		r.Post("/settings", handlers.AdminSettingsUpdate)
+
+		// Categories
+		r.Get("/categories", handlers.AdminCategoriesView)
+		r.Post("/categories/new", handlers.AdminCategoryCreate)
+		r.Post("/categories/delete", handlers.AdminCategoryDelete)
 	})
     
 	r.Get("/ws/party", websockets.ServeWS(hub))

@@ -11,7 +11,10 @@ type User struct {
 	Email        string          `json:"email"`
 	PasswordHash string          `json:"-"`
 	VirtualCoins int             `json:"virtual_coins"`
-	ProfileData  json.RawMessage `json:"profile_data"`
+	UserLevel    int             `json:"user_level"`
+	FirstName    *string         `json:"first_name"`
+	LastName     *string         `json:"last_name"`
+	AvatarURL    *string         `json:"avatar_url"`
 	Settings     json.RawMessage `json:"settings"`
 	CreatedAt    time.Time       `json:"created_at"`
 }
@@ -132,4 +135,23 @@ type WatchPartyRoom struct {
 	IsPlaying              bool      `json:"is_playing"`
 	CurrentPositionSeconds int       `json:"current_position_seconds"`
 	CreatedAt              time.Time `json:"created_at"`
+}
+
+type AppSetting struct {
+	SettingKey   string          `json:"setting_key"`
+	SettingValue json.RawMessage `json:"setting_value"`
+}
+
+type MusicContent struct {
+	ID           int             `json:"id"`
+	Title        string          `json:"title"`
+	Description  *string         `json:"description"`
+	Artist       *string         `json:"artist"`
+	VideoSources json.RawMessage `json:"video_sources"`
+	AudioSources json.RawMessage `json:"audio_sources"`
+	PosterURL    *string         `json:"poster_url"`
+	BackdropURL  *string         `json:"backdrop_url"`
+	ReleaseDate  *string         `json:"release_date"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
 }
