@@ -74,15 +74,38 @@
                 path.className = 'text-gray-400 text-sm ml-2';
                 path.innerText = item.path;
 
-                const level = document.createElement('span');
-                level.className = 'text-purple-400 text-xs ml-4 border border-purple-500/30 px-2 py-1 rounded-full';
-                level.innerText = `Lvl ${item.level_required || 1}`;
+                const levelSelect = document.createElement('select');
+                levelSelect.className = 'bg-gray-700 text-purple-400 text-xs ml-4 border border-purple-500/30 px-2 py-1 rounded focus:outline-none';
+                
+                const opt1 = document.createElement('option');
+                opt1.value = '1';
+                opt1.text = 'Lvl 1 (Basic)';
+                if ((item.level_required || 1) == 1) opt1.selected = true;
+                
+                const opt2 = document.createElement('option');
+                opt2.value = '2';
+                opt2.text = 'Lvl 2 (Premium)';
+                if (item.level_required == 2) opt2.selected = true;
+
+                const opt3 = document.createElement('option');
+                opt3.value = '3';
+                opt3.text = 'Lvl 3 (Admin)';
+                if (item.level_required == 3) opt3.selected = true;
+
+                levelSelect.appendChild(opt1);
+                levelSelect.appendChild(opt2);
+                levelSelect.appendChild(opt3);
+
+                levelSelect.onchange = (e) => {
+                    item.level_required = parseInt(e.target.value, 10);
+                    updateHiddenInput();
+                };
 
                 leftCol.appendChild(checkbox);
                 leftCol.appendChild(icon);
                 leftCol.appendChild(label);
                 leftCol.appendChild(path);
-                leftCol.appendChild(level);
+                leftCol.appendChild(levelSelect);
 
                 const rightCol = document.createElement('div');
                 rightCol.className = 'flex gap-2';
