@@ -4,7 +4,7 @@
 </div>
 
 <div class="bg-gray-800 rounded-xl border border-gray-700 p-6 shadow-xl max-w-4xl">
-    <form action="/admin/settings" method="POST" class="space-y-6">
+    <form action="/admin/settings" method="POST" id="settings-form" class="space-y-6">
         <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Up Next Timer (seconds)</label>
             <input type="number" name="up_next_timer" value="{{ .UpNextTimer }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500">
@@ -12,9 +12,16 @@
         </div>
         
         <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Frontend Menu Layout (JSON)</label>
-            <textarea name="frontend_menu" rows="10" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 font-mono text-sm">{{ .FrontendMenu }}</textarea>
-            <p class="text-xs text-gray-400 mt-2">Example: <code>[{"label":"Movies", "path":"/movies", "level_required": 2, "order": 1, "enabled": true}]</code></p>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Frontend Menu Layout</label>
+            <div id="menu-editor" class="space-y-3 bg-gray-900 border border-gray-700 p-4 rounded-lg">
+                <!-- Dynamically populated by JS -->
+            </div>
+            
+            <!-- Hidden input to hold the actual JSON string -->
+            <input type="hidden" name="frontend_menu" id="frontend_menu_input">
+            
+            <!-- Hidden div to hold raw JSON safely from Go template -->
+            <div id="menu-data-source" style="display:none;" data-json="{{ .FrontendMenu }}"></div>
         </div>
 
         <div class="pt-4 border-t border-gray-700 flex justify-end">
@@ -22,4 +29,108 @@
         </div>
     </form>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dataSource = document.getElementById('menu-data-source').getAttribute('data-json');
+        let menuData = [];
+        try {
+            menuData = JSON.parse(dataSource || '[]');
+        } catch (e) {
+            console.error("Failed to parse menu JSON", e);
+        }
+
+        const editor = document.getElementById('menu-editor');
+        const hiddenInput = document.getElementById('frontend_menu_input');
+
+        function renderMenu() {
+            editor.innerHTML = '';
+            menuData.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700';
+
+                const leftCol = document.createElement('div');
+                leftCol.className = 'flex items-center gap-4';
+
+                // Checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = item.enabled !== false;
+                checkbox.className = 'w-5 h-5 accent-blue-500';
+                checkbox.onchange = (e) => {
+                    item.enabled = e.target.checked;
+                    updateHiddenInput();
+                };
+
+                const icon = document.createElement('span');
+                icon.className = 'material-icons text-gray-400 text-xl';
+                icon.innerText = item.icon || 'folder';
+
+                const label = document.createElement('span');
+                label.className = 'text-white font-medium';
+                label.innerText = item.label;
+
+                const path = document.createElement('span');
+                path.className = 'text-gray-400 text-sm ml-2';
+                path.innerText = item.path;
+
+                const level = document.createElement('span');
+                level.className = 'text-purple-400 text-xs ml-4 border border-purple-500/30 px-2 py-1 rounded-full';
+                level.innerText = `Lvl ${item.level_required || 1}`;
+
+                leftCol.appendChild(checkbox);
+                leftCol.appendChild(icon);
+                leftCol.appendChild(label);
+                leftCol.appendChild(path);
+                leftCol.appendChild(level);
+
+                const rightCol = document.createElement('div');
+                rightCol.className = 'flex gap-2';
+
+                const upBtn = document.createElement('button');
+                upBtn.type = 'button';
+                upBtn.innerHTML = '↑';
+                upBtn.className = 'px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors disabled:opacity-50';
+                upBtn.disabled = index === 0;
+                upBtn.onclick = () => moveItem(index, -1);
+
+                const downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.innerHTML = '↓';
+                downBtn.className = 'px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors disabled:opacity-50';
+                downBtn.disabled = index === menuData.length - 1;
+                downBtn.onclick = () => moveItem(index, 1);
+
+                rightCol.appendChild(upBtn);
+                rightCol.appendChild(downBtn);
+
+                row.appendChild(leftCol);
+                row.appendChild(rightCol);
+
+                editor.appendChild(row);
+            });
+            updateHiddenInput();
+        }
+
+        function moveItem(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex >= 0 && newIndex < menuData.length) {
+                const temp = menuData[index];
+                menuData[index] = menuData[newIndex];
+                menuData[newIndex] = temp;
+                
+                // update order fields just in case
+                menuData.forEach((item, i) => item.order = i + 1);
+                
+                renderMenu();
+            }
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(menuData);
+        }
+
+        renderMenu();
+    });
+</script>
 {{ end }}
