@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -541,4 +544,106 @@ func AdminCategoryDelete(w http.ResponseWriter, r *http.Request) {
         config.DB.Exec(fmt.Sprintf("DELETE FROM %s WHERE id = ?", tableName), id)
     }
     http.Redirect(w, r, "/admin/categories", http.StatusSeeOther)
+}
+
+func AdminFetchYouTubeLive(w http.ResponseWriter, r *http.Request) {
+	channelInput := r.URL.Query().Get("channel")
+	apiKey := os.Getenv("YOUTUBE_API_KEY")
+	if apiKey == "" {
+		http.Error(w, "YOUTUBE_API_KEY not configured in environment variables.", http.StatusInternalServerError)
+		return
+	}
+
+	channelID := ""
+
+	// Parse input
+	if strings.Contains(channelInput, "channel/") {
+		parts := strings.Split(channelInput, "channel/")
+		if len(parts) > 1 {
+			channelID = strings.Split(parts[1], "/")[0]
+			channelID = strings.Split(channelID, "?")[0]
+		}
+	} else if strings.Contains(channelInput, "@") {
+		parts := strings.Split(channelInput, "@")
+		if len(parts) > 1 {
+			handle := "@" + strings.Split(parts[1], "/")[0]
+			handle = strings.Split(handle, "?")[0]
+			
+			// Lookup channel ID from handle
+			apiURL := fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=%s&key=%s", url.QueryEscape(handle), apiKey)
+			resp, err := http.Get(apiURL)
+			if err == nil {
+				defer resp.Body.Close()
+				bodyBytes, _ := io.ReadAll(resp.Body)
+				var data struct {
+					Items []struct {
+						Id string `json:"id"`
+					} `json:"items"`
+				}
+				json.Unmarshal(bodyBytes, &data)
+				if len(data.Items) > 0 {
+					channelID = data.Items[0].Id
+				} else {
+					log.Printf("YouTube API (forHandle) returned no items: %s", string(bodyBytes))
+					// Fallback to forUsername
+					username := strings.TrimPrefix(handle, "@")
+					apiURL = fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=%s&key=%s", url.QueryEscape(username), apiKey)
+					resp2, err2 := http.Get(apiURL)
+					if err2 == nil {
+						defer resp2.Body.Close()
+						bodyBytes2, _ := io.ReadAll(resp2.Body)
+						json.Unmarshal(bodyBytes2, &data)
+						if len(data.Items) > 0 {
+							channelID = data.Items[0].Id
+						} else {
+							log.Printf("YouTube API (forUsername) returned no items: %s", string(bodyBytes2))
+						}
+					}
+				}
+			}
+		}
+	} else if len(channelInput) == 24 && strings.HasPrefix(channelInput, "UC") {
+        // Direct channel ID
+        channelID = channelInput
+    }
+
+	if channelID == "" {
+		http.Error(w, "Could not extract channel ID. Please provide a valid YouTube channel URL or @handle.", http.StatusBadRequest)
+		return
+	}
+
+	// Search for live video
+	searchUrl := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?part=id&channelId=%s&eventType=live&type=video&key=%s", channelID, apiKey)
+	resp, err := http.Get(searchUrl)
+	if err != nil {
+		http.Error(w, "Failed to query YouTube API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+        http.Error(w, fmt.Sprintf("YouTube API returned status %d. Please check your API key.", resp.StatusCode), http.StatusInternalServerError)
+		return
+    }
+
+	var searchData struct {
+		Items []struct {
+			Id struct {
+				VideoId string `json:"videoId"`
+			} `json:"id"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&searchData); err != nil {
+		http.Error(w, "Failed to parse YouTube API response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if len(searchData.Items) == 0 {
+		json.NewEncoder(w).Encode(map[string]string{"error": "This channel does not currently have an active live stream."})
+		return
+	}
+
+	videoUrl := "https://www.youtube.com/watch?v=" + searchData.Items[0].Id.VideoId
+	json.NewEncoder(w).Encode(map[string]string{"live_url": videoUrl})
 }

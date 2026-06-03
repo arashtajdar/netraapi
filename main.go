@@ -123,6 +123,9 @@ func main() {
 		r.Post("/music/new", handlers.AdminMusicCreate)
 		r.Post("/music/delete/{id}", handlers.AdminMusicDelete)
 
+		// YouTube API Helper
+		r.Get("/youtube/live-url", handlers.AdminFetchYouTubeLive)
+
 		// Settings
 		r.Get("/settings", handlers.AdminSettingsView)
 		r.Post("/settings", handlers.AdminSettingsUpdate)

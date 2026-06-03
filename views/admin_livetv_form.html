@@ -17,8 +17,18 @@
             <input type="url" name="stream_url" value="{{ if .Channel }}{{ .Channel.StreamURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/live.m3u8">
         </div>
         <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">YouTube Auto-Fetch</label>
+            <div class="flex gap-2">
+                <input type="text" id="yt_channel_input" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/@ChannelName">
+                <button type="button" onclick="fetchLive()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
+                    Find Live Stream
+                </button>
+            </div>
+            <p id="yt_fetch_status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">YouTube Live URL (Alternative to m3u8)</label>
-            <input type="url" name="youtube_url" value="{{ if .Channel }}{{ .Channel.YoutubeURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/watch?v=dWqNgzZwspI">
+            <input type="url" name="youtube_url" id="youtube_url" value="{{ if .Channel }}{{ .Channel.YoutubeURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/watch?v=dWqNgzZwspI">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label>
@@ -60,6 +70,42 @@
     </form>
 </div>
 <script>
+    async function fetchLive() {
+        const input = document.getElementById('yt_channel_input').value.trim();
+        const statusEl = document.getElementById('yt_fetch_status');
+        const ytInput = document.getElementById('youtube_url');
+        
+        if (!input) return;
+        
+        statusEl.className = "text-sm mt-2 text-blue-400";
+        statusEl.innerText = "Searching for live stream using YouTube API...";
+        statusEl.classList.remove("hidden");
+        
+        try {
+            const res = await fetch('/admin/youtube/live-url?channel=' + encodeURIComponent(input));
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || "HTTP " + res.status);
+            }
+            const data = await res.json();
+            
+            if (data.error) {
+                statusEl.className = "text-sm mt-2 text-red-400";
+                statusEl.innerText = data.error;
+            } else if (data.live_url) {
+                statusEl.className = "text-sm mt-2 text-green-400";
+                statusEl.innerText = "Success! Live stream found.";
+                ytInput.value = data.live_url;
+                
+                ytInput.classList.add("ring-2", "ring-green-500");
+                setTimeout(() => ytInput.classList.remove("ring-2", "ring-green-500"), 2000);
+            }
+        } catch (e) {
+            statusEl.className = "text-sm mt-2 text-red-400";
+            statusEl.innerText = e.message || "Error connecting to server.";
+        }
+    }
+
     const epgInput = document.getElementById('epg_data');
     const tabsContainer = document.getElementById('epg-tabs');
     const contentContainer = document.getElementById('epg-content');
