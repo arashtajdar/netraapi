@@ -125,6 +125,7 @@ func main() {
 
 		// YouTube API Helper
 		r.Get("/youtube/live-url", handlers.AdminFetchYouTubeLive)
+		r.Post("/youtube/fetch-all", handlers.AdminFetchAllYouTubeLive)
 
 		// Settings
 		r.Get("/settings", handlers.AdminSettingsView)

@@ -106,7 +106,7 @@ func AdminSeriesView(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminLiveTVView(w http.ResponseWriter, r *http.Request) {
-	rows, err := config.DB.Query("SELECT id, name, stream_url, logo_url, youtube_url FROM live_tv_channels ORDER BY created_at DESC")
+	rows, err := config.DB.Query("SELECT id, name, stream_url, logo_url, youtube_url, youtube_channel_url FROM live_tv_channels ORDER BY created_at DESC")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -117,15 +117,16 @@ func AdminLiveTVView(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int
 		var name string
-		var streamUrl, logoUrl, youtubeUrl sql.NullString
-		err := rows.Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl)
+		var streamUrl, logoUrl, youtubeUrl, youtubeChannelUrl sql.NullString
+		err := rows.Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl, &youtubeChannelUrl)
 		if err == nil {
 			channels = append(channels, map[string]interface{}{
-				"ID":         id,
-				"Name":       name,
-				"StreamURL":  streamUrl.String,
-				"LogoURL":    logoUrl.String,
-				"YoutubeURL": youtubeUrl.String,
+				"ID":                id,
+				"Name":              name,
+				"StreamURL":         streamUrl.String,
+				"LogoURL":           logoUrl.String,
+				"YoutubeURL":        youtubeUrl.String,
+				"YoutubeChannelURL": youtubeChannelUrl.String,
 			})
 		}
 	}
@@ -215,8 +216,9 @@ func AdminLiveTVCreate(w http.ResponseWriter, r *http.Request) {
 	streamUrl := r.FormValue("stream_url")
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
+	youtubeChannelUrl := r.FormValue("youtube_channel_url")
 
-	res, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`, name, streamUrl, logoUrl, youtubeUrl)
+	res, err := config.DB.Exec(`INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url, youtube_channel_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`, name, streamUrl, logoUrl, youtubeUrl, youtubeChannelUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -302,19 +304,20 @@ func getEPG(channelID int) string {
 func AdminLiveTVEditFormView(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var channel map[string]interface{}
-	var name, streamUrl, logoUrl, youtubeUrl sql.NullString
-	err := config.DB.QueryRow("SELECT id, name, stream_url, logo_url, youtube_url FROM live_tv_channels WHERE id = ?", id).Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl)
+	var name, streamUrl, logoUrl, youtubeUrl, youtubeChannelUrl sql.NullString
+	err := config.DB.QueryRow("SELECT id, name, stream_url, logo_url, youtube_url, youtube_channel_url FROM live_tv_channels WHERE id = ?", id).Scan(&id, &name, &streamUrl, &logoUrl, &youtubeUrl, &youtubeChannelUrl)
 	if err == nil {
 		channelID := 0
 		fmt.Sscanf(id, "%d", &channelID)
 		epgData := getEPG(channelID)
 		channel = map[string]interface{}{
-			"ID":         id,
-			"Name":       name.String,
-			"StreamURL":  streamUrl.String,
-			"LogoURL":    logoUrl.String,
-			"YoutubeURL": youtubeUrl.String,
-			"EPGData":    epgData,
+			"ID":                id,
+			"Name":              name.String,
+			"StreamURL":         streamUrl.String,
+			"LogoURL":           logoUrl.String,
+			"YoutubeURL":        youtubeUrl.String,
+			"YoutubeChannelURL": youtubeChannelUrl.String,
+			"EPGData":           epgData,
 		}
 	} else {
 		http.Error(w, "Channel not found", http.StatusNotFound)
@@ -330,8 +333,9 @@ func AdminLiveTVUpdate(w http.ResponseWriter, r *http.Request) {
 	streamUrl := r.FormValue("stream_url")
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
+	youtubeChannelUrl := r.FormValue("youtube_channel_url")
 
-	_, err := config.DB.Exec(`UPDATE live_tv_channels SET name=?, stream_url=NULLIF(?,''), logo_url=NULLIF(?,''), youtube_url=NULLIF(?,'') WHERE id=?`, name, streamUrl, logoUrl, youtubeUrl, id)
+	_, err := config.DB.Exec(`UPDATE live_tv_channels SET name=?, stream_url=NULLIF(?,''), logo_url=NULLIF(?,''), youtube_url=NULLIF(?,''), youtube_channel_url=NULLIF(?,'') WHERE id=?`, name, streamUrl, logoUrl, youtubeUrl, youtubeChannelUrl, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -646,4 +650,113 @@ func AdminFetchYouTubeLive(w http.ResponseWriter, r *http.Request) {
 
 	videoUrl := "https://www.youtube.com/watch?v=" + searchData.Items[0].Id.VideoId
 	json.NewEncoder(w).Encode(map[string]string{"live_url": videoUrl})
+}
+
+func AdminFetchAllYouTubeLive(w http.ResponseWriter, r *http.Request) {
+	// First fetch all channels with a youtube_channel_url
+	rows, err := config.DB.Query("SELECT id, youtube_channel_url FROM live_tv_channels WHERE youtube_channel_url IS NOT NULL AND youtube_channel_url != ''")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type ChannelInfo struct {
+		ID  int
+		URL string
+	}
+	var channels []ChannelInfo
+	for rows.Next() {
+		var id int
+		var url string
+		if err := rows.Scan(&id, &url); err == nil {
+			channels = append(channels, ChannelInfo{ID: id, URL: url})
+		}
+	}
+	rows.Close()
+
+	apiKey := os.Getenv("YOUTUBE_API_KEY")
+	if apiKey == "" {
+		http.Error(w, "YOUTUBE_API_KEY not configured", http.StatusInternalServerError)
+		return
+	}
+
+	updatedCount := 0
+	for _, ch := range channels {
+		channelInput := ch.URL
+		channelID := ""
+
+		if strings.Contains(channelInput, "channel/") {
+			parts := strings.Split(channelInput, "channel/")
+			if len(parts) > 1 {
+				channelID = strings.Split(parts[1], "/")[0]
+				channelID = strings.Split(channelID, "?")[0]
+			}
+		} else if strings.Contains(channelInput, "@") {
+			parts := strings.Split(channelInput, "@")
+			if len(parts) > 1 {
+				handle := "@" + strings.Split(parts[1], "/")[0]
+				handle = strings.Split(handle, "?")[0]
+				apiURL := fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=%s&key=%s", url.QueryEscape(handle), apiKey)
+				resp, err := http.Get(apiURL)
+				if err == nil {
+					bodyBytes, _ := io.ReadAll(resp.Body)
+					resp.Body.Close()
+					var data struct {
+						Items []struct {
+							Id string `json:"id"`
+						} `json:"items"`
+					}
+					json.Unmarshal(bodyBytes, &data)
+					if len(data.Items) > 0 {
+						channelID = data.Items[0].Id
+					} else {
+						username := strings.TrimPrefix(handle, "@")
+						apiURL = fmt.Sprintf("https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=%s&key=%s", url.QueryEscape(username), apiKey)
+						resp2, err2 := http.Get(apiURL)
+						if err2 == nil {
+							bodyBytes2, _ := io.ReadAll(resp2.Body)
+							resp2.Body.Close()
+							json.Unmarshal(bodyBytes2, &data)
+							if len(data.Items) > 0 {
+								channelID = data.Items[0].Id
+							}
+						}
+					}
+				}
+			}
+		} else if len(channelInput) == 24 && strings.HasPrefix(channelInput, "UC") {
+			channelID = channelInput
+		}
+
+		if channelID != "" {
+			searchUrl := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?part=id&channelId=%s&eventType=live&type=video&key=%s", channelID, apiKey)
+			resp, err := http.Get(searchUrl)
+			if err == nil && resp.StatusCode == 200 {
+				var searchData struct {
+					Items []struct {
+						Id struct {
+							VideoId string `json:"videoId"`
+						} `json:"id"`
+					} `json:"items"`
+				}
+				if err := json.NewDecoder(resp.Body).Decode(&searchData); err == nil {
+					if len(searchData.Items) > 0 {
+						videoUrl := "https://www.youtube.com/watch?v=" + searchData.Items[0].Id.VideoId
+						config.DB.Exec("UPDATE live_tv_channels SET youtube_url=? WHERE id=?", videoUrl, ch.ID)
+						updatedCount++
+					}
+				}
+				resp.Body.Close()
+			} else if resp != nil {
+				resp.Body.Close()
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"updated_count": updatedCount,
+	})
 }

@@ -1,9 +1,15 @@
 {{ define "content" }}
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-white">Manage Live TV</h1>
-    <a href="/admin/live-tv/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block">
-        + Add Channel
-    </a>
+    <div class="flex gap-3">
+        <button onclick="fetchAllYouTubeLive()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block flex items-center gap-2">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+            Fetch All YouTube Live
+        </button>
+        <a href="/admin/live-tv/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block flex items-center">
+            + Add Channel
+        </a>
+    </div>
 </div>
 <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-lg">
     <table class="w-full text-left border-collapse">
@@ -43,4 +49,27 @@
         </tbody>
     </table>
 </div>
+
+<script>
+    async function fetchAllYouTubeLive() {
+        if (!confirm("This will scan all channels with a YouTube handle and update their live stream URLs. Continue?")) return;
+        
+        try {
+            const btn = document.querySelector('button[onclick="fetchAllYouTubeLive()"]');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Fetching...';
+            btn.disabled = true;
+
+            const res = await fetch('/admin/youtube/fetch-all', { method: 'POST' });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+
+            alert(`Successfully updated ${data.updated_count} channels!`);
+            location.reload();
+        } catch(e) {
+            alert('Error: ' + e.message);
+            location.reload();
+        }
+    }
+</script>
 {{ end }}

@@ -22,7 +22,7 @@ ON DUPLICATE KEY UPDATE title=VALUES(title), description=VALUES(description), vi
 -- Seed Settings
 INSERT INTO app_settings (setting_key, setting_value) VALUES
 ('up_next_timer', '10'),
-('frontend_menu', '[{"label":"Live TV", "path":"/live", "level_required": 1, "order": 1, "enabled": true}, {"label":"Movies", "path":"/movies", "level_required": 2, "order": 2, "enabled": true}, {"label":"Series", "path":"/series", "level_required": 2, "order": 3, "enabled": true}, {"label":"Music", "path":"/music", "level_required": 2, "order": 4, "enabled": true}, {"label":"Sports", "path":"/sports", "level_required": 2, "order": 5, "enabled": true}]')
+('frontend_menu', '[{"label":"Live TV", "path":"/live", "level_required": 1, "order": 1, "enabled": true}, {"label":"Movies", "path":"/movies", "level_required": 2, "order": 2, "enabled": true}, {"label":"Series", "path":"/series", "level_required": 2, "order": 3, "enabled": true}, {"label":"Music", "path":"/music", "level_required": 2, "order": 4, "enabled": true}, {"label":"Sports", "path":"/sports", "level_required": 2, "order": 5, "enabled": true}, {"label":"Profile", "path":"/profile", "level_required": 1, "order": 6, "enabled": true}]')
 ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
 
 -- Seed Categories

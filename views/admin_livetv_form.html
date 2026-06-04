@@ -19,7 +19,7 @@
         <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">YouTube Auto-Fetch</label>
             <div class="flex gap-2">
-                <input type="text" id="yt_channel_input" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/@ChannelName">
+                <input type="text" id="yt_channel_input" name="youtube_channel_url" value="{{ if .Channel }}{{ .Channel.YoutubeChannelURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. https://www.youtube.com/@ChannelName">
                 <button type="button" onclick="fetchLive()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
                     Find Live Stream
                 </button>
