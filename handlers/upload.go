@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"netra-api/services/storage"
+	"sheedbox-api/services/storage"
 )
 
 func UploadMedia(w http.ResponseWriter, r *http.Request) {

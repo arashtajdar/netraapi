@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"netra-api/config"
-	"netra-api/models"
+	"sheedbox-api/config"
+	"sheedbox-api/models"
 )
 
 func GetLiveChannels(w http.ResponseWriter, r *http.Request) {

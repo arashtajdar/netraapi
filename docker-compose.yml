@@ -4,7 +4,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: netra_db
+      MYSQL_DATABASE: sheedbox_db
     ports:
       - "13306:3306"
     volumes:
@@ -25,7 +25,7 @@ services:
       - DB_USER=root
       - DB_PASS=secret
       - DB_HOST=db:3306
-      - DB_NAME=netra_db
+      - DB_NAME=sheedbox_db
       - PORT=9876
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - JWT_SECRET=${JWT_SECRET}

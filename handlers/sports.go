@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"netra-api/config"
-	"netra-api/models"
+	"sheedbox-api/config"
+	"sheedbox-api/models"
 )
 
 func GetSportsEvents(w http.ResponseWriter, r *http.Request) {

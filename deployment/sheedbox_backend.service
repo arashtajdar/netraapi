@@ -1,15 +1,15 @@
 [Unit]
-Description=Netra High-Performance Go Backend Service
+Description=SheedBox High-Performance Go Backend Service
 After=network.target mysql.service
 
 [Service]
 Type=simple
-User=netra
-Group=netra
+User=sheedbox
+Group=sheedbox
 
 # Define the working directory and absolute execution path
-WorkingDirectory=/var/www/netra-api
-ExecStart=/var/www/netra-api/netra-api
+WorkingDirectory=/var/www/sheedbox-api
+ExecStart=/var/www/sheedbox-api/sheedbox-api
 
 # Environment constraints
 # Environment="PORT=9876" "GIN_MODE=release"
@@ -27,7 +27,7 @@ LimitNOFILE=65536
 # Standard Output Redirection
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=netra-backend
+SyslogIdentifier=sheedbox-backend
 
 [Install]
 WantedBy=multi-user.target

@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"netra-api/config"
+	"sheedbox-api/config"
 )
 
 type FeaturedItem struct {

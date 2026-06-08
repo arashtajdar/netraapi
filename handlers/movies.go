@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"netra-api/config"
-	"netra-api/models"
+	"sheedbox-api/config"
+	"sheedbox-api/models"
 
 	"github.com/go-chi/chi/v5"
 )

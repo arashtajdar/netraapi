@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"netra-api/config"
+	"sheedbox-api/config"
 
 	"github.com/go-chi/chi/v5"
 )

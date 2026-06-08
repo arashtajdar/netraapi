@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"netra-api/config"
+	"sheedbox-api/config"
 )
 
 func TriviaReward(w http.ResponseWriter, r *http.Request) {

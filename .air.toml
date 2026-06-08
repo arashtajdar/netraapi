@@ -4,8 +4,8 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  bin = "./tmp/netra-api"
-  cmd = "go mod tidy && go build -o ./tmp/netra-api ."
+  bin = "./tmp/sheedbox-api"
+  cmd = "go mod tidy && go build -o ./tmp/sheedbox-api ."
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []

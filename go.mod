@@ -1,4 +1,4 @@
-module netra-api
+module sheedbox-api
 
 go 1.25.8
 

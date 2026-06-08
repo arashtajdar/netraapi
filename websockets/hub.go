@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"netra-api/config"
+	"sheedbox-api/config"
 
 	"github.com/gorilla/websocket"
 )

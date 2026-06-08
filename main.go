@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"os"
 
-	"netra-api/config"
-	"netra-api/handlers"
-	"netra-api/middleware"
-	"netra-api/websockets"
-	"netra-api/services/storage"
+	"sheedbox-api/config"
+	"sheedbox-api/handlers"
+	"sheedbox-api/middleware"
+	"sheedbox-api/websockets"
+	"sheedbox-api/services/storage"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -144,6 +144,6 @@ func main() {
 		port = "9876"
 	}
 
-	log.Printf("🚀 Netra Backend initialized and running on port %s...\n", port)
+	log.Printf("🚀 SheedBox Backend initialized and running on port %s...\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
