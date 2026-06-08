@@ -12,6 +12,16 @@ services:
       # Mount schema.sql to automatically initialize the database
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+    depends_on:
+      - db
+
   api:
     build: 
       context: .
