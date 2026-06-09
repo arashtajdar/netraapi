@@ -76,10 +76,6 @@ func main() {
 
 	r.Use(middleware.RequestLogger)
 
-	// Liveness and Readiness Probes for deploys
-	r.Get("/healthz", handlers.LivenessCheck)
-	r.Get("/readyz", handlers.ReadinessCheck)
-
 	allowedOrigins := []string{"https://*", "http://*"}
 	if originsEnv := os.Getenv("ALLOWED_ORIGINS"); originsEnv != "" {
 		allowedOrigins = strings.Split(originsEnv, ",")
@@ -96,6 +92,10 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	// Liveness and Readiness Probes for deploys
+	r.Get("/healthz", handlers.LivenessCheck)
+	r.Get("/readyz", handlers.ReadinessCheck)
 
 	// Initialize DI for Movies domain
 	movieRepo := mysql.NewMovieRepository(config.DB)
