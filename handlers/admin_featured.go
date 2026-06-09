@@ -63,6 +63,7 @@ func AdminFeaturedCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	config.ClearCachePattern("featured_items")
 	http.Redirect(w, r, "/admin/featured", http.StatusSeeOther)
 }
 
@@ -73,5 +74,6 @@ func AdminFeaturedDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	config.ClearCachePattern("featured_items")
 	http.Redirect(w, r, "/admin/featured", http.StatusSeeOther)
 }

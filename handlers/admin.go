@@ -205,6 +205,8 @@ func AdminMoviesCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	config.ClearCachePattern("movies_*")
+
 	http.Redirect(w, r, "/admin/movies", http.StatusSeeOther)
 }
 
@@ -225,6 +227,8 @@ func AdminLiveTVCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	channelID, _ := res.LastInsertId()
 	saveEPG(channelID, r.FormValue("epg_data"))
+
+	config.ClearCachePattern("livetv_*")
 
 	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
 }
@@ -345,6 +349,8 @@ func AdminLiveTVUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Sscanf(id, "%d", &channelID)
 	saveEPG(channelID, r.FormValue("epg_data"))
 
+	config.ClearCachePattern("livetv_*")
+
 	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
 }
 
@@ -367,6 +373,7 @@ func AdminSportsCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	config.ClearCachePattern("sports_*")
 	http.Redirect(w, r, "/admin/sports", http.StatusSeeOther)
 }
 
@@ -390,6 +397,7 @@ func AdminSeriesCreate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	config.ClearCachePattern("series_*")
 	http.Redirect(w, r, "/admin/series", http.StatusSeeOther)
 }
 
@@ -404,6 +412,7 @@ func AdminLiveTVDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to delete channel: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	config.ClearCachePattern("livetv_*")
 	http.Redirect(w, r, "/admin/live-tv", http.StatusSeeOther)
 }
 
