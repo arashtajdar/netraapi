@@ -4,7 +4,7 @@
 FROM golang:1.26-alpine
 
 # Install git and Air
-RUN apk update && apk add --no-cache git
+RUN apk update && apk add --no-cache git ffmpeg
 RUN go install github.com/air-verse/air@latest
 
 WORKDIR /app

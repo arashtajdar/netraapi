@@ -9,6 +9,7 @@ import (
 	"sheedbox-api/handlers"
 	"sheedbox-api/middleware"
 	"sheedbox-api/websockets"
+	"sheedbox-api/services"
 	"sheedbox-api/services/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -44,6 +45,8 @@ func main() {
 
 	hub := websockets.NewHub()
 	go hub.Run()
+
+	services.InitVideoProcessor()
 
 	r := chi.NewRouter()
 

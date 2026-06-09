@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o sheedbox-api main.go
 FROM alpine:latest
 
 # Add certificates for TLS (required to talk to Cloudflare R2 / AWS S3)
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata ffmpeg
 
 WORKDIR /app
 

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sheedbox-api/services"
 	"sheedbox-api/services/storage"
 )
 
@@ -30,6 +31,11 @@ func UploadMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Upload failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Queue for FFmpeg processing
+	services.QueueVideoForProcessing(services.VideoTask{
+		VideoURL: url,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"url": url})
