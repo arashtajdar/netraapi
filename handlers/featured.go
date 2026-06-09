@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sheedbox-api/config"
+	"time"
 )
 
 type FeaturedItem struct {
@@ -17,6 +19,17 @@ type FeaturedItem struct {
 }
 
 func GetFeatured(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Check Redis Cache
+	if config.RedisClient != nil {
+		cached, err := config.RedisClient.Get(context.Background(), "featured_items").Result()
+		if err == nil {
+			w.Write([]byte(cached))
+			return
+		}
+	}
+
 	// First check if there are any featured items in the database
 	rows, err := config.DB.Query(`
 		SELECT f.id, f.content_type, f.content_id, f.custom_description,
@@ -89,6 +102,12 @@ func GetFeatured(w http.ResponseWriter, r *http.Request) {
 		featured = []FeaturedItem{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(featured)
+	respBytes, _ := json.Marshal(featured)
+	
+	// Save to Redis Cache (expires in 10 minutes)
+	if config.RedisClient != nil {
+		config.RedisClient.Set(context.Background(), "featured_items", respBytes, 10*time.Minute)
+	}
+
+	w.Write(respBytes)
 }

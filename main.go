@@ -23,6 +23,7 @@ func main() {
 
 	config.ConnectDB()
 	defer config.DB.Close()
+	config.ConnectRedis()
 
 	if os.Getenv("STORAGE_DRIVER") == "r2" {
 		storage.ActiveProvider = storage.NewR2Storage(

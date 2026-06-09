@@ -22,6 +22,12 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+
   api:
     build: 
       context: .
@@ -31,11 +37,13 @@ services:
       - "9876:9876"
     depends_on:
       - db
+      - redis
     environment:
       - DB_USER=root
       - DB_PASS=secret
       - DB_HOST=db:3306
       - DB_NAME=sheedbox_db
+      - REDIS_URL=redis:6379
       - PORT=9876
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - JWT_SECRET=${JWT_SECRET}
