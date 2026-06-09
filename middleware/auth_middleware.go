@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -52,6 +53,14 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		userID := int(claims["user_id"].(float64))
 		ctx := context.WithValue(r.Context(), "user_id", userID)
 		
+		profileIDStr := r.Header.Get("X-Profile-ID")
+		if profileIDStr != "" {
+			profileID, err := strconv.Atoi(profileIDStr)
+			if err == nil {
+				ctx = context.WithValue(ctx, "profile_id", profileID)
+			}
+		}
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

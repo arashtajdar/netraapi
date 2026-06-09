@@ -13,13 +13,25 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_email (email)
 );
 
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(512),
+    is_kids_mode BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS watchlists (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    profile_id INT,
     name VARCHAR(255) NOT NULL DEFAULT 'Watch List',
     is_default BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES user_profiles(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS movies (
@@ -124,11 +136,13 @@ CREATE TABLE IF NOT EXISTS sports_events (
 
 CREATE TABLE IF NOT EXISTS user_watch_history (
     user_id INT,
+    profile_id INT,
     movie_id INT,
     resume_position_seconds INT DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY(user_id, movie_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id) REFERENCES user_profiles(id) ON DELETE CASCADE,
     FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
 );
 

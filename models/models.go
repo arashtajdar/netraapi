@@ -19,9 +19,19 @@ type User struct {
 	CreatedAt    time.Time       `json:"created_at"`
 }
 
+type UserProfile struct {
+	ID         int       `json:"id"`
+	UserID     int       `json:"user_id"`
+	Name       string    `json:"name"`
+	AvatarURL  *string   `json:"avatar_url"`
+	IsKidsMode bool      `json:"is_kids_mode"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type Watchlist struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
+	ProfileID *int      `json:"profile_id"`
 	Name      string    `json:"name"`
 	IsDefault bool      `json:"is_default"`
 	CreatedAt time.Time `json:"created_at"`
@@ -123,6 +133,7 @@ type SportsEvent struct {
 
 type UserWatchHistory struct {
 	UserID                int       `json:"user_id"`
+	ProfileID             *int      `json:"profile_id"`
 	MovieID               int       `json:"movie_id"`
 	ResumePositionSeconds int       `json:"resume_position_seconds"`
 	UpdatedAt             time.Time `json:"updated_at"`

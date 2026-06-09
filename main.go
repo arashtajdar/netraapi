@@ -79,6 +79,15 @@ func main() {
 		// Protected endpoints requiring JWT validation
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.JWTMiddleware)
+			
+			// Profiles
+			r.Get("/profiles", handlers.GetUserProfiles)
+			r.Post("/profiles", handlers.CreateProfile)
+			r.Put("/profiles/{id}", handlers.UpdateProfile)
+			r.Delete("/profiles/{id}", handlers.DeleteProfile)
+
+			r.Get("/recommendations", handlers.GetRecommendations)
+
 			r.Post("/movies/resume", handlers.ResumePlayback)
 			r.Get("/watchlists", handlers.GetUserWatchlists)
 			r.Post("/gamification/trivia-reward", handlers.TriviaReward)
