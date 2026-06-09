@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sheedbox-api/config"
 	"sheedbox-api/models"
+	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -86,6 +87,9 @@ func GetSeriesDetail(w http.ResponseWriter, r *http.Request) {
 		for epRows.Next() {
 			var ep models.Episode
 			if err := epRows.Scan(&ep.ID, &ep.SeasonID, &ep.EpisodeNumber, &ep.Title, &ep.Description, &ep.VideoSources, &ep.Subtitles, &ep.IntroStart, &ep.IntroEnd, &ep.CreatedAt); err == nil {
+				if ep.VideoSources != nil {
+					ep.VideoSources = services.SignVideoSources(ep.VideoSources)
+				}
 				seasonsList[i].Episodes = append(seasonsList[i].Episodes, ep)
 			}
 		}

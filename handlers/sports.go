@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sheedbox-api/config"
 	"sheedbox-api/models"
+	"sheedbox-api/services"
 )
 
 func GetSportsEvents(w http.ResponseWriter, r *http.Request) {
@@ -21,6 +22,13 @@ func GetSportsEvents(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var e models.SportsEvent
 		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &e.IsLive, &e.LiveStreamURL, &e.VideoSources, &e.StartTime, &e.CreatedAt, &e.UpdatedAt); err == nil {
+			if e.LiveStreamURL != nil {
+				signed := services.SignURL(*e.LiveStreamURL)
+				e.LiveStreamURL = &signed
+			}
+			if e.VideoSources != nil {
+				e.VideoSources = services.SignVideoSources(e.VideoSources)
+			}
 			events = append(events, e)
 		}
 	}

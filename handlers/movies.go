@@ -7,6 +7,7 @@ import (
 
 	"sheedbox-api/config"
 	"sheedbox-api/models"
+	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -48,7 +49,7 @@ func GetMovies(w http.ResponseWriter, r *http.Request) {
 		if local.Valid { m.LocalRating = &local.Float64 }
 		if poster.Valid { m.PosterURL = &poster.String }
 		if backdrop.Valid { m.BackdropURL = &backdrop.String }
-		if vid != nil { m.VideoSources = vid } else { m.VideoSources = []byte("[]") }
+		if vid != nil { m.VideoSources = services.SignVideoSources(vid) } else { m.VideoSources = []byte("[]") }
 		if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
 		
 		if introStart.Valid { 
@@ -136,7 +137,7 @@ func GetMovieDetail(w http.ResponseWriter, r *http.Request) {
 	if local.Valid { m.LocalRating = &local.Float64 }
 	if poster.Valid { m.PosterURL = &poster.String }
 	if backdrop.Valid { m.BackdropURL = &backdrop.String }
-	if vid != nil { m.VideoSources = vid } else { m.VideoSources = []byte("[]") }
+	if vid != nil { m.VideoSources = services.SignVideoSources(vid) } else { m.VideoSources = []byte("[]") }
 	if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
 	
 	if introStart.Valid { 

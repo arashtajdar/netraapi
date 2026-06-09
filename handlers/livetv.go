@@ -7,6 +7,7 @@ import (
 
 	"sheedbox-api/config"
 	"sheedbox-api/models"
+	"sheedbox-api/services"
 )
 
 func GetLiveChannels(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +24,10 @@ func GetLiveChannels(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var c models.LiveTVChannel
 		if err := rows.Scan(&c.ID, &c.Name, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.CreatedAt); err == nil {
+			if c.StreamURL != nil {
+				signed := services.SignURL(*c.StreamURL)
+				c.StreamURL = &signed
+			}
 			c.EPG = fetchEPGForChannel(c.ID)
 			channels = append(channels, c)
 		}
