@@ -92,7 +92,20 @@
             if (data.error) {
                 statusEl.className = "text-sm mt-2 text-red-400";
                 statusEl.innerText = data.error;
-            } else if (data.live_url) {
+            } else if (data.streams) {
+                if (data.streams.length === 1) {
+                    statusEl.className = "text-sm mt-2 text-green-400";
+                    statusEl.innerText = "Success! Live stream found.";
+                    ytInput.value = data.streams[0].url;
+                    
+                    ytInput.classList.add("ring-2", "ring-green-500");
+                    setTimeout(() => ytInput.classList.remove("ring-2", "ring-green-500"), 2000);
+                } else if (data.streams.length > 1) {
+                    statusEl.className = "text-sm mt-2 text-blue-400";
+                    statusEl.innerText = "Multiple streams found. Please select one.";
+                    showStreamSelectionPopup(data.streams);
+                }
+            } else if (data.live_url) { // Fallback for old API response
                 statusEl.className = "text-sm mt-2 text-green-400";
                 statusEl.innerText = "Success! Live stream found.";
                 ytInput.value = data.live_url;
@@ -104,6 +117,55 @@
             statusEl.className = "text-sm mt-2 text-red-400";
             statusEl.innerText = e.message || "Error connecting to server.";
         }
+    }
+
+    function showStreamSelectionPopup(streams) {
+        let oldModal = document.getElementById('streamSelectionModal');
+        if (oldModal) oldModal.remove();
+
+        const streamsHtml = streams.map(stream => `
+            <button type="button" onclick="selectStream('${stream.url}')" class="w-full text-left p-3 rounded-lg border border-gray-700 bg-gray-900 hover:bg-gray-700 transition-colors">
+                <div class="text-blue-400 font-medium mb-1 line-clamp-2">${stream.title}</div>
+                <div class="text-xs text-gray-500 break-all">${stream.url}</div>
+            </button>
+        `).join('');
+
+        const modalHtml = `
+            <div id="streamSelectionModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                <div class="bg-gray-800 rounded-xl max-w-lg w-full border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
+                    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-white">Select Live Stream</h3>
+                        <button type="button" onclick="closeStreamModal()" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    <div class="p-4 overflow-y-auto space-y-3">
+                        ${streamsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    function closeStreamModal() {
+        const modal = document.getElementById('streamSelectionModal');
+        if (modal) modal.remove();
+    }
+
+    function selectStream(url) {
+        const ytInput = document.getElementById('youtube_url');
+        const statusEl = document.getElementById('yt_fetch_status');
+        
+        ytInput.value = url;
+        ytInput.classList.add("ring-2", "ring-green-500");
+        setTimeout(() => ytInput.classList.remove("ring-2", "ring-green-500"), 2000);
+        
+        statusEl.className = "text-sm mt-2 text-green-400";
+        statusEl.innerText = "Success! Live stream selected.";
+        
+        closeStreamModal();
     }
 
     const epgInput = document.getElementById('epg_data');

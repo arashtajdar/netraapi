@@ -330,7 +330,7 @@ func (h *AdminLiveTVHandler) FetchYouTubeLive(w http.ResponseWriter, r *http.Req
 	}
 
 	// Search for live video
-	searchUrl := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?part=id&channelId=%s&eventType=live&type=video&key=%s", channelID, apiKey)
+	searchUrl := fmt.Sprintf("https://www.googleapis.com/youtube/v3/search?part=id,snippet&channelId=%s&eventType=live&type=video&key=%s", channelID, apiKey)
 	resp, err := http.Get(searchUrl)
 	if err != nil {
 		http.Error(w, "Failed to query YouTube API", http.StatusInternalServerError)
@@ -348,6 +348,9 @@ func (h *AdminLiveTVHandler) FetchYouTubeLive(w http.ResponseWriter, r *http.Req
 			Id struct {
 				VideoId string `json:"videoId"`
 			} `json:"id"`
+			Snippet struct {
+				Title string `json:"title"`
+			} `json:"snippet"`
 		} `json:"items"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&searchData); err != nil {
@@ -361,8 +364,22 @@ func (h *AdminLiveTVHandler) FetchYouTubeLive(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	videoUrl := "https://www.youtube.com/watch?v=" + searchData.Items[0].Id.VideoId
-	json.NewEncoder(w).Encode(map[string]string{"live_url": videoUrl})
+	type StreamData struct {
+		VideoID string `json:"video_id"`
+		Title   string `json:"title"`
+		URL     string `json:"url"`
+	}
+	var streams []StreamData
+
+	for _, item := range searchData.Items {
+		streams = append(streams, StreamData{
+			VideoID: item.Id.VideoId,
+			Title:   item.Snippet.Title,
+			URL:     "https://www.youtube.com/watch?v=" + item.Id.VideoId,
+		})
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{"streams": streams})
 }
 
 func (h *AdminLiveTVHandler) FetchAllYouTubeLive(w http.ResponseWriter, r *http.Request) {
