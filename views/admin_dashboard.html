@@ -28,15 +28,19 @@
 <!-- Charts Row -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- DAU Chart -->
-    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg flex flex-col">
         <h3 class="text-lg font-bold text-white mb-4">Daily Active Users (DAU)</h3>
-        <canvas id="dauChart" height="250"></canvas>
+        <div class="relative w-full h-[250px]">
+            <canvas id="dauChart"></canvas>
+        </div>
     </div>
 
     <!-- Popular Content Chart -->
-    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg flex flex-col">
         <h3 class="text-lg font-bold text-white mb-4">Most Popular Content (7 Days)</h3>
-        <canvas id="popularChart" height="250"></canvas>
+        <div class="relative w-full h-[250px]">
+            <canvas id="popularChart"></canvas>
+        </div>
     </div>
 </div>
 
