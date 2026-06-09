@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -37,5 +38,22 @@ func (l *LocalStorage) UploadFile(file multipart.File, header *multipart.FileHea
 }
 
 func (l *LocalStorage) DeleteFile(fileUrl string) error {
-	return nil
+	filename := filepath.Base(fileUrl)
+	filePath := filepath.Join(l.BaseDir, filename)
+	
+	cleanedPath := filepath.Clean(filePath)
+	expectedPrefix, err := filepath.Abs(l.BaseDir)
+	if err != nil {
+		return err
+	}
+	actualPath, err := filepath.Abs(cleanedPath)
+	if err != nil {
+		return err
+	}
+	
+	if !strings.HasPrefix(actualPath, expectedPrefix) {
+		return fmt.Errorf("path traversal attempt detected")
+	}
+
+	return os.Remove(actualPath)
 }

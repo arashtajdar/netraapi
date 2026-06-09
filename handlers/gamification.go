@@ -4,12 +4,25 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"sheedbox-api/config"
+	"sheedbox-api/contextkeys"
+	"sheedbox-api/services"
 )
 
-func TriviaReward(w http.ResponseWriter, r *http.Request) {
+type GamificationHandler struct {
+	userService *services.UserService
+}
+
+func NewGamificationHandler(userService *services.UserService) *GamificationHandler {
+	return &GamificationHandler{userService: userService}
+}
+
+func (h *GamificationHandler) TriviaReward(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 
 	var input struct {
 		CoinsReward int `json:"coins_reward"`
@@ -27,8 +40,7 @@ func TriviaReward(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `UPDATE users SET virtual_coins = virtual_coins + ? WHERE id = ?`
-	_, err := config.DB.Exec(query, input.CoinsReward, userID)
+	err := h.userService.AwardCoins(r.Context(), userID, input.CoinsReward)
 	if err != nil {
 		http.Error(w, `{"error": "Database error"}`, http.StatusInternalServerError)
 		return

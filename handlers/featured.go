@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
 	"time"
+
+	"sheedbox-api/config"
 )
 
 type FeaturedItem struct {
@@ -18,7 +19,14 @@ type FeaturedItem struct {
 	BackdropURL       string `json:"backdrop_url"`
 }
 
-func GetFeatured(w http.ResponseWriter, r *http.Request) {
+type FeaturedHandler struct {
+}
+
+func NewFeaturedHandler() *FeaturedHandler {
+	return &FeaturedHandler{}
+}
+
+func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Check Redis Cache
@@ -30,7 +38,7 @@ func GetFeatured(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// First check if there are any featured items in the database
+	// Check if there are any featured items in the database
 	rows, err := config.DB.Query(`
 		SELECT f.id, f.content_type, f.content_id, f.custom_description,
 		CASE f.content_type

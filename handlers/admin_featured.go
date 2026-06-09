@@ -3,12 +3,21 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+
 	"sheedbox-api/config"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func AdminFeaturedView(w http.ResponseWriter, r *http.Request) {
+type AdminFeaturedHandler struct {
+	db *sql.DB
+}
+
+func NewAdminFeaturedHandler(db *sql.DB) *AdminFeaturedHandler {
+	return &AdminFeaturedHandler{db: db}
+}
+
+func (h *AdminFeaturedHandler) View(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT f.id, f.content_type, f.content_id, f.custom_description, f.created_at,
 		CASE f.content_type
@@ -20,7 +29,7 @@ func AdminFeaturedView(w http.ResponseWriter, r *http.Request) {
 		FROM featured_items f
 		ORDER BY f.created_at DESC
 	`
-	rows, err := config.DB.Query(query)
+	rows, err := h.db.Query(query)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,17 +57,22 @@ func AdminFeaturedView(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "admin_featured.html", map[string]interface{}{"Featured": items})
 }
 
-func AdminFeaturedFormView(w http.ResponseWriter, r *http.Request) {
+func (h *AdminFeaturedHandler) FormView(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "admin_featured_form.html", nil)
 }
 
-func AdminFeaturedCreate(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+func (h *AdminFeaturedHandler) Create(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
 	contentType := r.FormValue("content_type")
 	contentId := r.FormValue("content_id")
 	customDesc := r.FormValue("custom_description")
 
-	_, err := config.DB.Exec("INSERT INTO featured_items (content_type, content_id, custom_description) VALUES (?, ?, NULLIF(?,''))", contentType, contentId, customDesc)
+	_, err = h.db.Exec("INSERT INTO featured_items (content_type, content_id, custom_description) VALUES (?, ?, NULLIF(?,''))", contentType, contentId, customDesc)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -67,9 +81,9 @@ func AdminFeaturedCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/featured", http.StatusSeeOther)
 }
 
-func AdminFeaturedDelete(w http.ResponseWriter, r *http.Request) {
+func (h *AdminFeaturedHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	_, err := config.DB.Exec("DELETE FROM featured_items WHERE id = ?", id)
+	_, err := h.db.Exec("DELETE FROM featured_items WHERE id = ?", id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

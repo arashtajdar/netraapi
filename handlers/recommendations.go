@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
-	"sheedbox-api/models"
 	"sync"
 	"time"
-	"database/sql"
+
+	"sheedbox-api/contextkeys"
+	"sheedbox-api/models"
 )
 
 type CachedRecommendation struct {
@@ -15,23 +16,33 @@ type CachedRecommendation struct {
 	ExpiresAt time.Time
 }
 
-var recommendationCache = sync.Map{}
+type RecommendationHandler struct {
+	db                  *sql.DB
+	recommendationCache sync.Map
+}
 
-func GetRecommendations(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	
-	profileID := 0
-	if pid := r.Context().Value("profile_id"); pid != nil {
-		profileID = pid.(int)
+func NewRecommendationHandler(db *sql.DB) *RecommendationHandler {
+	return &RecommendationHandler{
+		db: db,
 	}
-	userID := r.Context().Value("user_id").(int)
-	
+}
+
+func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	profileID, _ := contextkeys.ProfileIDFromContext(r.Context())
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	cacheKey := userID
 	if profileID != 0 {
 		cacheKey = profileID
 	}
 
-	if cached, ok := recommendationCache.Load(cacheKey); ok {
+	if cached, ok := h.recommendationCache.Load(cacheKey); ok {
 		c := cached.(CachedRecommendation)
 		if time.Now().Before(c.ExpiresAt) {
 			json.NewEncoder(w).Encode(c.Movies)
@@ -57,7 +68,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 			ORDER BY m.imdb_rating DESC
 			LIMIT 10
 		`
-		rows, err = config.DB.Query(query, profileID, profileID)
+		rows, err = h.db.QueryContext(r.Context(), query, profileID, profileID)
 	} else {
 		query := `
 			SELECT DISTINCT m.id, m.title, m.description, m.poster_url, m.backdrop_url, m.imdb_rating
@@ -73,7 +84,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 			ORDER BY m.imdb_rating DESC
 			LIMIT 10
 		`
-		rows, err = config.DB.Query(query, userID, userID)
+		rows, err = h.db.QueryContext(r.Context(), query, userID, userID)
 	}
 
 	if err != nil {
@@ -93,8 +104,8 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 	if len(movies) == 0 {
 		// Fallback: Just return highest rated overall
 		fallbackQuery := `SELECT id, title, description, poster_url, backdrop_url, imdb_rating FROM movies ORDER BY imdb_rating DESC LIMIT 10`
-		fbRows, _ := config.DB.Query(fallbackQuery)
-		if fbRows != nil {
+		fbRows, err := h.db.QueryContext(r.Context(), fallbackQuery)
+		if err == nil && fbRows != nil {
 			defer fbRows.Close()
 			for fbRows.Next() {
 				var m models.Movie
@@ -109,7 +120,7 @@ func GetRecommendations(w http.ResponseWriter, r *http.Request) {
 		movies = []models.Movie{}
 	}
 
-	recommendationCache.Store(cacheKey, CachedRecommendation{
+	h.recommendationCache.Store(cacheKey, CachedRecommendation{
 		Movies:    movies,
 		ExpiresAt: time.Now().Add(1 * time.Hour),
 	})

@@ -3,37 +3,26 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
-	"sheedbox-api/models"
+
 	"sheedbox-api/services"
 )
 
-func GetSportsEvents(w http.ResponseWriter, r *http.Request) {
+// SportsHandler handles HTTP requests for the Sports domain.
+type SportsHandler struct {
+	sportsService *services.SportsService
+}
+
+// NewSportsHandler creates a new SportsHandler.
+func NewSportsHandler(sportsService *services.SportsService) *SportsHandler {
+	return &SportsHandler{sportsService: sportsService}
+}
+
+func (h *SportsHandler) GetSportsEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	query := `SELECT id, title, description, is_live, live_stream_url, video_sources, start_time, created_at, updated_at FROM sports_events`
-	rows, err := config.DB.Query(query)
+	events, err := h.sportsService.ListEvents(r.Context())
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var events []models.SportsEvent
-	for rows.Next() {
-		var e models.SportsEvent
-		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &e.IsLive, &e.LiveStreamURL, &e.VideoSources, &e.StartTime, &e.CreatedAt, &e.UpdatedAt); err == nil {
-			if e.LiveStreamURL != nil {
-				signed := services.SignURL(*e.LiveStreamURL)
-				e.LiveStreamURL = &signed
-			}
-			if e.VideoSources != nil {
-				e.VideoSources = services.SignVideoSources(e.VideoSources)
-			}
-			events = append(events, e)
-		}
-	}
-	if events == nil {
-		events = []models.SportsEvent{}
 	}
 	json.NewEncoder(w).Encode(events)
 }

@@ -1,79 +1,77 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"sheedbox-api/config"
-	"sheedbox-api/models"
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func GetMovies(w http.ResponseWriter, r *http.Request) {
+// MovieHandler handles HTTP requests for the Movie domain.
+type MovieHandler struct {
+	movieService *services.MovieService
+}
+
+// NewMovieHandler creates a new MovieHandler.
+func NewMovieHandler(movieService *services.MovieService) *MovieHandler {
+	return &MovieHandler{movieService: movieService}
+}
+
+// GetMovies returns the list of all movies.
+func (h *MovieHandler) GetMovies(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	query := `SELECT id, title, description, release_date, director, cast_members, imdb_rating, local_rating, poster_url, backdrop_url, video_sources, subtitles, intro_start, intro_end, created_at, updated_at FROM movies`
-	
-	rows, err := config.DB.Query(query)
+	movies, err := h.movieService.ListMovies(r.Context())
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var movies []models.Movie
-	for rows.Next() {
-		var m models.Movie
-		var desc, relDate, dir, poster, backdrop sql.NullString
-		var imdb, local sql.NullFloat64
-		var cast, vid, sub []byte
-		var introStart, introEnd sql.NullInt32
-		
-		if err := rows.Scan(
-			&m.ID, &m.Title, &desc, &relDate, &dir,
-			&cast, &imdb, &local, &poster,
-			&backdrop, &vid, &sub, &introStart,
-			&introEnd, &m.CreatedAt, &m.UpdatedAt,
-		); err != nil {
-			continue
-		}
-		
-		m.Description = desc.String
-		if relDate.Valid { m.ReleaseDate = &relDate.String }
-		if dir.Valid { m.Director = &dir.String }
-		if cast != nil { m.CastMembers = cast } else { m.CastMembers = []byte("[]") }
-		if imdb.Valid { m.IMDBRating = &imdb.Float64 }
-		if local.Valid { m.LocalRating = &local.Float64 }
-		if poster.Valid { m.PosterURL = &poster.String }
-		if backdrop.Valid { m.BackdropURL = &backdrop.String }
-		if vid != nil { m.VideoSources = services.SignVideoSources(vid) } else { m.VideoSources = []byte("[]") }
-		if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
-		
-		if introStart.Valid { 
-			v := int(introStart.Int32)
-			m.IntroStart = &v 
-		}
-		if introEnd.Valid { 
-			v := int(introEnd.Int32)
-			m.IntroEnd = &v 
-		}
-		
-		movies = append(movies, m)
-	}
-
-	if movies == nil {
-		movies = []models.Movie{}
 	}
 
 	json.NewEncoder(w).Encode(movies)
 }
 
-func ResumePlayback(w http.ResponseWriter, r *http.Request) {
+// GetMovieDetail returns the details of a specific movie.
+func (h *MovieHandler) GetMovieDetail(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+	idStr := chi.URLParam(r, "id")
+	if idStr == "" {
+		http.Error(w, `{"error": "Missing movie ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "Invalid movie ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	m, err := h.movieService.GetMovieDetail(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
+		return
+	}
+	if m == nil {
+		http.Error(w, `{"error": "Movie not found"}`, http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(m)
+}
+
+// ResumePlayback handles saving the user's current watch position.
+// TODO: Move this to a dedicated WatchHistoryService/Repository in the future.
+func (h *MovieHandler) ResumePlayback(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 
 	var input struct {
 		MovieID               int `json:"movie_id"`
@@ -98,57 +96,5 @@ func ResumePlayback(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Progress synchronized gracefully"})
-}
-
-func GetMovieDetail(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		http.Error(w, `{"error": "Missing movie ID"}`, http.StatusBadRequest)
-		return
-	}
-
-	var m models.Movie
-	var desc, relDate, dir, poster, backdrop sql.NullString
-	var imdb, local sql.NullFloat64
-	var cast, vid, sub []byte
-	var introStart, introEnd sql.NullInt32
-
-	query := `SELECT id, title, description, release_date, director, cast_members, imdb_rating, local_rating, poster_url, backdrop_url, video_sources, subtitles, intro_start, intro_end, created_at, updated_at FROM movies WHERE id = ?`
-	err := config.DB.QueryRow(query, id).Scan(
-		&m.ID, &m.Title, &desc, &relDate, &dir,
-		&cast, &imdb, &local, &poster,
-		&backdrop, &vid, &sub, &introStart,
-		&introEnd, &m.CreatedAt, &m.UpdatedAt,
-	)
-	if err == sql.ErrNoRows {
-		http.Error(w, `{"error": "Movie not found"}`, http.StatusNotFound)
-		return
-	} else if err != nil {
-		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
-		return
-	}
-
-	m.Description = desc.String
-	if relDate.Valid { m.ReleaseDate = &relDate.String }
-	if dir.Valid { m.Director = &dir.String }
-	if cast != nil { m.CastMembers = cast } else { m.CastMembers = []byte("[]") }
-	if imdb.Valid { m.IMDBRating = &imdb.Float64 }
-	if local.Valid { m.LocalRating = &local.Float64 }
-	if poster.Valid { m.PosterURL = &poster.String }
-	if backdrop.Valid { m.BackdropURL = &backdrop.String }
-	if vid != nil { m.VideoSources = services.SignVideoSources(vid) } else { m.VideoSources = []byte("[]") }
-	if sub != nil { m.Subtitles = sub } else { m.Subtitles = []byte("{}") }
-	
-	if introStart.Valid { 
-		v := int(introStart.Int32)
-		m.IntroStart = &v 
-	}
-	if introEnd.Valid { 
-		v := int(introEnd.Int32)
-		m.IntroEnd = &v 
-	}
-
-	json.NewEncoder(w).Encode(m)
 }
 

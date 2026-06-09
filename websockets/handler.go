@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
+
+	"sheedbox-api/config"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
@@ -28,16 +29,13 @@ func ServeWS(hub *Hub) http.HandlerFunc {
 
 		var userID int
 		if tokenStr != "" {
-			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-				secret := os.Getenv("JWT_SECRET")
-				if secret == "" {
-					secret = "supersecretkey_change_in_prod"
-				}
-				return []byte(secret), nil
-			})
+			// Use centralized key function that enforces HS256
+			token, err := jwt.Parse(tokenStr, config.JWTKeyFunc)
 			if err == nil && token.Valid {
 				claims := token.Claims.(jwt.MapClaims)
-				userID = int(claims["user_id"].(float64))
+				if uid, ok := claims["user_id"].(float64); ok {
+					userID = int(uid)
+				}
 			}
 		}
 

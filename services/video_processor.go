@@ -1,16 +1,20 @@
 package services
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"os/exec"
-	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"sheedbox-api/config"
 )
 
 type VideoTask struct {
-	VideoURL string
-	OutputPath string // Where to save the HLS files temporarily before uploading or directly modifying
+	VideoURL   string `json:"video_url"`
+	OutputPath string `json:"output_path"` // Where to save the HLS files temporarily
 }
 
 var videoQueue = make(chan VideoTask, 100)
@@ -20,17 +24,49 @@ func InitVideoProcessor() {
 }
 
 func QueueVideoForProcessing(task VideoTask) {
+	if config.RedisClient != nil {
+		data, err := json.Marshal(task)
+		if err == nil {
+			err = config.RedisClient.LPush(context.Background(), "video_processing_queue", data).Err()
+			if err == nil {
+				log.Println("Video queued for processing in Redis:", task.VideoURL)
+				return
+			}
+		}
+	}
+
+	// Fallback to in-memory channel
 	select {
 	case videoQueue <- task:
-		log.Println("Video queued for processing:", task.VideoURL)
+		log.Println("Video queued for processing in fallback channel:", task.VideoURL)
 	default:
 		log.Println("Video queue full, dropping task:", task.VideoURL)
 	}
 }
 
 func worker() {
-	for task := range videoQueue {
-		processVideo(task)
+	ctx := context.Background()
+	for {
+		if config.RedisClient != nil {
+			// BRPop blocks up to 5 seconds waiting for a task
+			res, err := config.RedisClient.BRPop(ctx, 5*time.Second, "video_processing_queue").Result()
+			if err == nil && len(res) == 2 {
+				var task VideoTask
+				if err := json.Unmarshal([]byte(res[1]), &task); err == nil {
+					processVideo(task)
+					continue
+				}
+			}
+		}
+
+		// Fallback check on in-memory channel
+		select {
+		case task := <-videoQueue:
+			processVideo(task)
+		default:
+			// If both Redis and in-memory queue are empty, sleep briefly
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 }
 
@@ -42,12 +78,6 @@ func processVideo(task VideoTask) {
 	outDir := filepath.Join("/tmp", baseName) // Use /tmp for Docker
 	
 	// Example FFmpeg command for HLS (simplified)
-	// In production, you would fetch the file if it's an HTTP URL, or read from disk.
-	// For this pipeline, assuming we pass the URL directly to ffmpeg (it supports http inputs)
-	
-	hlsOutput := filepath.Join(outDir, "master.m3u8")
-	
-	// Create directory if not exists (using os.MkdirAll but since it's just a shell command simulation we can do it via bash or exec)
 	cmdMkdir := exec.Command("mkdir", "-p", outDir)
 	cmdMkdir.Run()
 
@@ -75,7 +105,7 @@ func processVideo(task VideoTask) {
 		return
 	}
 
-	// Generate VTT Sprites (Basic example)
+	// Generate VTT Sprites
 	spriteCmd := exec.Command("ffmpeg",
 		"-i", task.VideoURL,
 		"-vf", "fps=1/10,scale=160:-1,tile=10x10",
@@ -88,7 +118,4 @@ func processVideo(task VideoTask) {
 	}
 
 	log.Println("Successfully processed video to HLS and Sprites:", outDir)
-	
-	// TODO: Upload files from outDir back to storage (R2/S3/Local)
-	// and update the database with the new m3u8 URL.
 }

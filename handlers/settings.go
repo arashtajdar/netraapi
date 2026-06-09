@@ -1,14 +1,23 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
+
 	"sheedbox-api/models"
 )
 
-func GetSettings(w http.ResponseWriter, r *http.Request) {
-	rows, err := config.DB.Query("SELECT setting_key, setting_value FROM app_settings")
+type SettingsHandler struct {
+	db *sql.DB
+}
+
+func NewSettingsHandler(db *sql.DB) *SettingsHandler {
+	return &SettingsHandler{db: db}
+}
+
+func (h *SettingsHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.db.QueryContext(r.Context(), "SELECT setting_key, setting_value FROM app_settings")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

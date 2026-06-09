@@ -3,40 +3,47 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
-	"sheedbox-api/models"
-	"github.com/go-chi/chi/v5"
 	"strconv"
+
+	"sheedbox-api/contextkeys"
+	"sheedbox-api/models"
+	"sheedbox-api/services"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func GetUserProfiles(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+type ProfileHandler struct {
+	profileService *services.ProfileService
+}
 
-	query := `SELECT id, user_id, name, avatar_url, is_kids_mode, created_at FROM user_profiles WHERE user_id = ?`
-	rows, err := config.DB.Query(query, userID)
+func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler {
+	return &ProfileHandler{profileService: profileService}
+}
+
+func (h *ProfileHandler) GetUserProfiles(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	profiles, err := h.profileService.GetProfiles(r.Context(), userID)
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var profiles []models.UserProfile
-	for rows.Next() {
-		var p models.UserProfile
-		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.AvatarURL, &p.IsKidsMode, &p.CreatedAt); err == nil {
-			profiles = append(profiles, p)
-		}
-	}
-	if profiles == nil {
-		profiles = []models.UserProfile{}
-	}
 	json.NewEncoder(w).Encode(profiles)
 }
 
-func CreateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) CreateProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 
 	var req models.UserProfile
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -49,23 +56,24 @@ func CreateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `INSERT INTO user_profiles (user_id, name, avatar_url, is_kids_mode) VALUES (?, ?, ?, ?)`
-	res, err := config.DB.Exec(query, userID, req.Name, req.AvatarURL, req.IsKidsMode)
+	req.UserID = userID
+	err := h.profileService.CreateProfile(r.Context(), &req)
 	if err != nil {
 		http.Error(w, `{"error": "Failed to create profile"}`, http.StatusInternalServerError)
 		return
 	}
 
-	id, _ := res.LastInsertId()
-	req.ID = int(id)
-	req.UserID = userID
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(req)
 }
 
-func UpdateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 	profileID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, `{"error": "Invalid profile ID"}`, http.StatusBadRequest)
@@ -78,29 +86,31 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `UPDATE user_profiles SET name = ?, avatar_url = ?, is_kids_mode = ? WHERE id = ? AND user_id = ?`
-	_, err = config.DB.Exec(query, req.Name, req.AvatarURL, req.IsKidsMode, profileID, userID)
+	req.ID = profileID
+	req.UserID = userID
+	err = h.profileService.UpdateProfile(r.Context(), &req)
 	if err != nil {
 		http.Error(w, `{"error": "Failed to update profile"}`, http.StatusInternalServerError)
 		return
 	}
 
-	req.ID = profileID
-	req.UserID = userID
 	json.NewEncoder(w).Encode(req)
 }
 
-func DeleteProfile(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) DeleteProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
 	profileID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, `{"error": "Invalid profile ID"}`, http.StatusBadRequest)
 		return
 	}
 
-	query := `DELETE FROM user_profiles WHERE id = ? AND user_id = ?`
-	_, err = config.DB.Exec(query, profileID, userID)
+	err = h.profileService.DeleteProfile(r.Context(), profileID, userID)
 	if err != nil {
 		http.Error(w, `{"error": "Failed to delete profile"}`, http.StatusInternalServerError)
 		return

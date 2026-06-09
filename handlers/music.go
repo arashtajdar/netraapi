@@ -1,65 +1,56 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
-	"sheedbox-api/models"
+	"strconv"
+
+	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func GetMusic(w http.ResponseWriter, r *http.Request) {
-	rows, err := config.DB.Query("SELECT id, title, description, artist, poster_url, backdrop_url, release_date FROM music_content ORDER BY created_at DESC")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer rows.Close()
-
-	var musicList []models.MusicContent
-	for rows.Next() {
-		var m models.MusicContent
-		var releaseDate sql.NullString
-		if err := rows.Scan(&m.ID, &m.Title, &m.Description, &m.Artist, &m.PosterURL, &m.BackdropURL, &releaseDate); err == nil {
-			if releaseDate.Valid {
-				m.ReleaseDate = &releaseDate.String
-			}
-			musicList = append(musicList, m)
-		}
-	}
-
-	if musicList == nil {
-		musicList = []models.MusicContent{}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(musicList)
+type MusicHandler struct {
+	musicService *services.MusicService
 }
 
-func GetMusicDetail(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+func NewMusicHandler(musicService *services.MusicService) *MusicHandler {
+	return &MusicHandler{musicService: musicService}
+}
 
-	var m models.MusicContent
-	var releaseDate sql.NullString
-
-	err := config.DB.QueryRow(`
-		SELECT id, title, description, artist, video_sources, audio_sources, poster_url, backdrop_url, release_date
-		FROM music_content WHERE id = ?
-	`, id).Scan(
-		&m.ID, &m.Title, &m.Description, &m.Artist, &m.VideoSources, &m.AudioSources, &m.PosterURL, &m.BackdropURL, &releaseDate,
-	)
-
+func (h *MusicHandler) GetMusic(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	music, err := h.musicService.ListMusic(r.Context())
 	if err != nil {
-		http.Error(w, "Music not found", http.StatusNotFound)
+		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(music)
+}
+
+func (h *MusicHandler) GetMusicDetail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	idStr := chi.URLParam(r, "id")
+	if idStr == "" {
+		http.Error(w, `{"error": "Missing music ID"}`, http.StatusBadRequest)
 		return
 	}
 
-	if releaseDate.Valid {
-		m.ReleaseDate = &releaseDate.String
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, `{"error": "Invalid music ID"}`, http.StatusBadRequest)
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	m, err := h.musicService.GetMusicDetail(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
+		return
+	}
+	if m == nil {
+		http.Error(w, `{"error": "Music not found"}`, http.StatusNotFound)
+		return
+	}
+
 	json.NewEncoder(w).Encode(m)
 }

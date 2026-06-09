@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -55,5 +56,22 @@ func (r *R2Storage) UploadFile(file multipart.File, header *multipart.FileHeader
 }
 
 func (r *R2Storage) DeleteFile(fileUrl string) error {
-	return nil
+	var key string
+	if r.PublicURL != "" && strings.HasPrefix(fileUrl, r.PublicURL) {
+		key = strings.TrimPrefix(fileUrl, r.PublicURL)
+		key = strings.TrimPrefix(key, "/")
+	} else {
+		parts := strings.Split(fileUrl, "/")
+		key = parts[len(parts)-1]
+	}
+
+	if key == "" {
+		return fmt.Errorf("unable to determine storage key from URL: %s", fileUrl)
+	}
+
+	_, err := r.Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(r.Bucket),
+		Key:    aws.String(key),
+	})
+	return err
 }

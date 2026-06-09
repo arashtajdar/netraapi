@@ -3,31 +3,32 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"sheedbox-api/config"
-	"sheedbox-api/models"
+
+	"sheedbox-api/contextkeys"
+	"sheedbox-api/services"
 )
 
-func GetUserWatchlists(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	userID := r.Context().Value("user_id").(int)
+type WatchlistHandler struct {
+	watchlistService *services.WatchlistService
+}
 
-	query := `SELECT id, user_id, name, is_default, created_at FROM watchlists WHERE user_id = ?`
-	rows, err := config.DB.Query(query, userID)
+func NewWatchlistHandler(watchlistService *services.WatchlistService) *WatchlistHandler {
+	return &WatchlistHandler{watchlistService: watchlistService}
+}
+
+func (h *WatchlistHandler) GetUserWatchlists(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID, ok := contextkeys.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	lists, err := h.watchlistService.GetWatchlists(r.Context(), userID)
 	if err != nil {
 		http.Error(w, `{"error": "Database retrieval failed"}`, http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var lists []models.Watchlist
-	for rows.Next() {
-		var wl models.Watchlist
-		if err := rows.Scan(&wl.ID, &wl.UserID, &wl.Name, &wl.IsDefault, &wl.CreatedAt); err == nil {
-			lists = append(lists, wl)
-		}
-	}
-	if lists == nil {
-		lists = []models.Watchlist{}
-	}
 	json.NewEncoder(w).Encode(lists)
 }
