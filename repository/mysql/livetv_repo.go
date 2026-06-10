@@ -19,7 +19,7 @@ func NewLiveTVRepository(db *sql.DB) repository.LiveTVRepository {
 }
 
 func (r *livetvRepo) List(ctx context.Context) ([]models.LiveTVChannel, error) {
-	query := `SELECT id, name, stream_url, logo_url, youtube_url, youtube_channel_url, created_at FROM live_tv_channels`
+	query := `SELECT id, name, slug, stream_url, logo_url, youtube_url, youtube_channel_url, created_at FROM live_tv_channels`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func (r *livetvRepo) List(ctx context.Context) ([]models.LiveTVChannel, error) {
 	var channels []models.LiveTVChannel
 	for rows.Next() {
 		var c models.LiveTVChannel
-		if err := rows.Scan(&c.ID, &c.Name, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.YoutubeChannelURL, &c.CreatedAt); err == nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.YoutubeChannelURL, &c.CreatedAt); err == nil {
 			channels = append(channels, c)
 		}
 	}
@@ -40,9 +40,9 @@ func (r *livetvRepo) List(ctx context.Context) ([]models.LiveTVChannel, error) {
 }
 
 func (r *livetvRepo) GetByID(ctx context.Context, id int) (*models.LiveTVChannel, error) {
-	query := `SELECT id, name, stream_url, logo_url, youtube_url, youtube_channel_url, created_at FROM live_tv_channels WHERE id = ?`
+	query := `SELECT id, name, slug, stream_url, logo_url, youtube_url, youtube_channel_url, created_at FROM live_tv_channels WHERE id = ?`
 	var c models.LiveTVChannel
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.YoutubeChannelURL, &c.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Slug, &c.StreamURL, &c.LogoURL, &c.YoutubeURL, &c.YoutubeChannelURL, &c.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -97,8 +97,8 @@ func (r *livetvRepo) GetEPGForChannel(ctx context.Context, channelID int) ([]mod
 }
 
 func (r *livetvRepo) Create(ctx context.Context, c *models.LiveTVChannel) (int64, error) {
-	query := `INSERT INTO live_tv_channels (name, stream_url, logo_url, youtube_url, youtube_channel_url) VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`
-	res, err := r.db.ExecContext(ctx, query, c.Name, c.StreamURL, c.LogoURL, c.YoutubeURL, c.YoutubeChannelURL)
+	query := `INSERT INTO live_tv_channels (name, slug, stream_url, logo_url, youtube_url, youtube_channel_url) VALUES (?, ?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''))`
+	res, err := r.db.ExecContext(ctx, query, c.Name, c.Slug, c.StreamURL, c.LogoURL, c.YoutubeURL, c.YoutubeChannelURL)
 	if err != nil {
 		return 0, err
 	}
@@ -110,8 +110,8 @@ func (r *livetvRepo) Create(ctx context.Context, c *models.LiveTVChannel) (int64
 }
 
 func (r *livetvRepo) Update(ctx context.Context, c *models.LiveTVChannel) error {
-	query := `UPDATE live_tv_channels SET name=?, stream_url=NULLIF(?,''), logo_url=NULLIF(?,''), youtube_url=NULLIF(?,''), youtube_channel_url=NULLIF(?,'') WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, c.Name, c.StreamURL, c.LogoURL, c.YoutubeURL, c.YoutubeChannelURL, c.ID)
+	query := `UPDATE live_tv_channels SET name=?, slug=?, stream_url=NULLIF(?,''), logo_url=NULLIF(?,''), youtube_url=NULLIF(?,''), youtube_channel_url=NULLIF(?,'') WHERE id=?`
+	_, err := r.db.ExecContext(ctx, query, c.Name, c.Slug, c.StreamURL, c.LogoURL, c.YoutubeURL, c.YoutubeChannelURL, c.ID)
 	return err
 }
 

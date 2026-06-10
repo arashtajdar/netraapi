@@ -19,7 +19,7 @@ func NewAdminFeaturedHandler(db *sql.DB) *AdminFeaturedHandler {
 
 func (h *AdminFeaturedHandler) View(w http.ResponseWriter, r *http.Request) {
 	query := `
-		SELECT f.id, f.content_type, f.content_id, f.custom_description, f.created_at,
+		SELECT f.id, f.content_type, f.content_id, f.custom_description, f.image_url, f.created_at,
 		CASE f.content_type
 			WHEN 'movie' THEN (SELECT title FROM movies WHERE id = f.content_id)
 			WHEN 'series' THEN (SELECT title FROM series WHERE id = f.content_id)
@@ -40,15 +40,16 @@ func (h *AdminFeaturedHandler) View(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, contentId int
 		var contentType, created string
-		var customDesc, contentTitle sql.NullString
+		var customDesc, contentTitle, imageUrl sql.NullString
 
-		err := rows.Scan(&id, &contentType, &contentId, &customDesc, &created, &contentTitle)
+		err := rows.Scan(&id, &contentType, &contentId, &customDesc, &imageUrl, &created, &contentTitle)
 		if err == nil {
 			items = append(items, map[string]interface{}{
 				"ID":                id,
 				"ContentType":       contentType,
 				"ContentID":         contentId,
 				"CustomDescription": customDesc.String,
+				"ImageURL":          imageUrl.String,
 				"ContentTitle":      contentTitle.String,
 				"CreatedAt":         created,
 			})
@@ -71,8 +72,9 @@ func (h *AdminFeaturedHandler) Create(w http.ResponseWriter, r *http.Request) {
 	contentType := r.FormValue("content_type")
 	contentId := r.FormValue("content_id")
 	customDesc := r.FormValue("custom_description")
+	imageUrl := r.FormValue("image_url")
 
-	_, err = h.db.Exec("INSERT INTO featured_items (content_type, content_id, custom_description) VALUES (?, ?, NULLIF(?,''))", contentType, contentId, customDesc)
+	_, err = h.db.Exec("INSERT INTO featured_items (content_type, content_id, custom_description, image_url) VALUES (?, ?, NULLIF(?,''), NULLIF(?,''))", contentType, contentId, customDesc, imageUrl)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

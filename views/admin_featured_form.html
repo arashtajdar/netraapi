@@ -25,6 +25,17 @@
             <label class="block text-sm font-medium text-gray-400 mb-1">Custom Description (Optional)</label>
             <textarea name="custom_description" rows="3" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="A special description specifically for the top banner overlay. If left blank, it will fall back to default behavior."></textarea>
         </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Custom Background Image (Optional)</label>
+            <div class="flex gap-2">
+                <input type="url" name="image_url" id="image_url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/image.jpg">
+                <button type="button" onclick="document.getElementById('image_upload').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
+                    Upload
+                </button>
+                <input type="file" id="image_upload" class="hidden" accept="image/*" onchange="uploadImage(this)">
+            </div>
+            <p id="image_upload_status" class="text-sm mt-2 hidden"></p>
+        </div>
         
         <div class="pt-4 border-t border-gray-700 flex justify-end">
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
@@ -33,4 +44,44 @@
         </div>
     </form>
 </div>
+<script>
+    async function uploadImage(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        
+        const statusEl = document.getElementById('image_upload_status');
+        const imageInput = document.getElementById('image_url');
+        
+        statusEl.className = "text-sm mt-2 text-blue-400";
+        statusEl.innerText = "Uploading image...";
+        statusEl.classList.remove("hidden");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch('/admin/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) {
+                throw new Error("Upload failed");
+            }
+            const data = await res.json();
+            if (data.url) {
+                imageInput.value = data.url;
+                statusEl.className = "text-sm mt-2 text-green-400";
+                statusEl.innerText = "Success! Image uploaded.";
+                
+                imageInput.classList.add("ring-2", "ring-green-500");
+                setTimeout(() => imageInput.classList.remove("ring-2", "ring-green-500"), 2000);
+            } else {
+                throw new Error("Invalid response format");
+            }
+        } catch (e) {
+            statusEl.className = "text-sm mt-2 text-red-400";
+            statusEl.innerText = e.message || "Upload error";
+        }
+    }
+</script>
 {{ end }}

@@ -60,6 +60,7 @@ func (h *AdminLiveTVHandler) View(w http.ResponseWriter, r *http.Request) {
 		channelData = append(channelData, map[string]interface{}{
 			"ID":                c.ID,
 			"Name":              c.Name,
+			"Slug":              c.Slug,
 			"StreamURL":         streamURL,
 			"LogoURL":           logoURL,
 			"YoutubeURL":        youtubeURL,
@@ -77,6 +78,7 @@ func (h *AdminLiveTVHandler) FormView(w http.ResponseWriter, r *http.Request) {
 func (h *AdminLiveTVHandler) Create(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	name := r.FormValue("name")
+	slug := r.FormValue("slug")
 	streamUrl := r.FormValue("stream_url")
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
@@ -84,6 +86,7 @@ func (h *AdminLiveTVHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	channel := models.LiveTVChannel{
 		Name:              name,
+		Slug:              slug,
 		StreamURL:         stringPtr(streamUrl),
 		LogoURL:           stringPtr(logoUrl),
 		YoutubeURL:        stringPtr(youtubeUrl),
@@ -159,6 +162,7 @@ func (h *AdminLiveTVHandler) EditFormView(w http.ResponseWriter, r *http.Request
 	channelMap := map[string]interface{}{
 		"ID":                channel.ID,
 		"Name":              channel.Name,
+		"Slug":              channel.Slug,
 		"StreamURL":         streamURL,
 		"LogoURL":           logoURL,
 		"YoutubeURL":        youtubeURL,
@@ -179,6 +183,7 @@ func (h *AdminLiveTVHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	name := r.FormValue("name")
+	slug := r.FormValue("slug")
 	streamUrl := r.FormValue("stream_url")
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
@@ -187,6 +192,7 @@ func (h *AdminLiveTVHandler) Update(w http.ResponseWriter, r *http.Request) {
 	channel := models.LiveTVChannel{
 		ID:                id,
 		Name:              name,
+		Slug:              slug,
 		StreamURL:         stringPtr(streamUrl),
 		LogoURL:           stringPtr(logoUrl),
 		YoutubeURL:        stringPtr(youtubeUrl),

@@ -6,6 +6,7 @@ import (
 
 type LiveTVChannel struct {
 	ID                int       `json:"id"`
+	Slug              string    `json:"slug"`
 	Name              string    `json:"name"`
 	StreamURL         *string   `json:"stream_url"`
 	LogoURL           *string   `json:"logo_url"`

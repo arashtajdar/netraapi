@@ -13,6 +13,10 @@
             <input type="text" name="name" value="{{ if .Channel }}{{ .Channel.Name }}{{ end }}" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
         </div>
         <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Slug (URL) *</label>
+            <input type="text" name="slug" value="{{ if .Channel }}{{ .Channel.Slug }}{{ end }}" required class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. news-channel">
+        </div>
+        <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Stream URL (m3u8)</label>
             <input type="url" name="stream_url" value="{{ if .Channel }}{{ .Channel.StreamURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/live.m3u8">
         </div>
@@ -32,7 +36,14 @@
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label>
-            <input type="url" name="logo_url" value="{{ if .Channel }}{{ .Channel.LogoURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/logo.png">
+            <div class="flex gap-2">
+                <input type="url" name="logo_url" id="logo_url" value="{{ if .Channel }}{{ .Channel.LogoURL }}{{ end }}" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="e.g. http://example.com/logo.png">
+                <button type="button" onclick="document.getElementById('logo_upload').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
+                    Upload
+                </button>
+                <input type="file" id="logo_upload" class="hidden" accept="image/*" onchange="uploadLogo(this)">
+            </div>
+            <p id="logo_upload_status" class="text-sm mt-2 hidden"></p>
         </div>
         <div class="mt-8 border-t border-gray-700 pt-6">
             <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
@@ -116,6 +127,45 @@
         } catch (e) {
             statusEl.className = "text-sm mt-2 text-red-400";
             statusEl.innerText = e.message || "Error connecting to server.";
+        }
+    }
+
+    async function uploadLogo(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        
+        const statusEl = document.getElementById('logo_upload_status');
+        const logoInput = document.getElementById('logo_url');
+        
+        statusEl.className = "text-sm mt-2 text-blue-400";
+        statusEl.innerText = "Uploading logo...";
+        statusEl.classList.remove("hidden");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch('/admin/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) {
+                throw new Error("Upload failed");
+            }
+            const data = await res.json();
+            if (data.url) {
+                logoInput.value = data.url;
+                statusEl.className = "text-sm mt-2 text-green-400";
+                statusEl.innerText = "Success! Logo uploaded.";
+                
+                logoInput.classList.add("ring-2", "ring-green-500");
+                setTimeout(() => logoInput.classList.remove("ring-2", "ring-green-500"), 2000);
+            } else {
+                throw new Error("Invalid response format");
+            }
+        } catch (e) {
+            statusEl.className = "text-sm mt-2 text-red-400";
+            statusEl.innerText = e.message || "Upload error";
         }
     }
 

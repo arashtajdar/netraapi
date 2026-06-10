@@ -47,18 +47,18 @@ func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 			WHEN 'live_tv' THEN (SELECT name FROM live_tv_channels WHERE id = f.content_id)
 			WHEN 'sports' THEN (SELECT title FROM sports_events WHERE id = f.content_id)
 		END as content_title,
-		CASE f.content_type
+		COALESCE(f.image_url, CASE f.content_type
 			WHEN 'movie' THEN (SELECT poster_url FROM movies WHERE id = f.content_id)
 			WHEN 'series' THEN (SELECT poster_url FROM series WHERE id = f.content_id)
 			WHEN 'live_tv' THEN (SELECT logo_url FROM live_tv_channels WHERE id = f.content_id)
 			WHEN 'sports' THEN NULL
-		END as poster_url,
-		CASE f.content_type
+		END) as poster_url,
+		COALESCE(f.image_url, CASE f.content_type
 			WHEN 'movie' THEN (SELECT backdrop_url FROM movies WHERE id = f.content_id)
 			WHEN 'series' THEN (SELECT backdrop_url FROM series WHERE id = f.content_id)
-			WHEN 'live_tv' THEN NULL
+			WHEN 'live_tv' THEN (SELECT logo_url FROM live_tv_channels WHERE id = f.content_id)
 			WHEN 'sports' THEN NULL
-		END as backdrop_url
+		END) as backdrop_url
 		FROM featured_items f
 		ORDER BY f.created_at DESC
 	`)
