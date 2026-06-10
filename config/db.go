@@ -14,13 +14,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
+
 
 var DB *sql.DB
 
 // ConnectDB initializes the MySQL connection pool
-func ConnectDB() {
+func ConnectDB(migrationsFS embed.FS) {
 	user := os.Getenv("DB_USER")
 	pass := os.Getenv("DB_PASS")
 	host := os.Getenv("DB_HOST")
@@ -46,11 +45,11 @@ func ConnectDB() {
 
 	log.Println("✅ Successfully connected to MySQL database!")
 
-	runMigrations(DB, name)
+	runMigrations(DB, name, migrationsFS)
 }
 
 // runMigrations automatically applies database migrations using golang-migrate
-func runMigrations(db *sql.DB, dbName string) {
+func runMigrations(db *sql.DB, dbName string, migrationsFS embed.FS) {
 	log.Println("⏳ Checking database migrations...")
 	
 	driver, err := mysql.WithInstance(db, &mysql.Config{})

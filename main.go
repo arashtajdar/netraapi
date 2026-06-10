@@ -21,7 +21,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"embed"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 func main() {
 	// Initialize structured logging (slog)
@@ -40,7 +44,7 @@ func main() {
 	// Initialize JWT — panics if JWT_SECRET is missing (fail-fast security)
 	config.InitJWT()
 
-	config.ConnectDB()
+	config.ConnectDB(migrationsFS)
 	defer config.DB.Close()
 	config.ConnectRedis()
 
