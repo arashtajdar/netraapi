@@ -194,6 +194,7 @@ func main() {
 			r.Get("/live-tv/edit/{id}", adminLiveTVHandler.EditFormView)
 			r.Post("/live-tv/edit/{id}", adminLiveTVHandler.Update)
 			r.Post("/live-tv/delete/{id}", adminLiveTVHandler.Delete)
+			r.Post("/live-tv/fetch-epg/{id}", adminLiveTVHandler.FetchEPGData)
 			r.Get("/sports", adminSportsHandler.View)
 			r.Get("/sports/new", adminSportsHandler.FormView)
 			r.Post("/sports/new", adminSportsHandler.Create)

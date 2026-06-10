@@ -18,6 +18,7 @@
                 <th class="p-4 font-semibold">Channel Name</th>
                 <th class="p-4 font-semibold">Stream URL (m3u8)</th>
                 <th class="p-4 font-semibold">YouTube URL</th>
+                <th class="p-4 font-semibold">EPG Sync</th>
                 <th class="p-4 font-semibold">Actions</th>
             </tr>
         </thead>
@@ -34,7 +35,21 @@
                 </td>
                 <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .StreamURL }}{{ .StreamURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
                 <td class="p-4 text-gray-400 truncate max-w-xs">{{ if .YoutubeURL }}{{ .YoutubeURL }}{{ else }}<span class="text-gray-600">-</span>{{ end }}</td>
+                <td class="p-4 text-sm text-gray-400">
+                    {{ if .EPGFetchURL }}
+                        <div class="truncate max-w-[150px]" title="{{ .EPGFetchURL }}">{{ .EPGFetchURL }}</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Last: {{ if .LastEPGFetch }}{{ .LastEPGFetch.Format "2006-01-02 15:04" }}{{ else }}Never{{ end }}<br>
+                            Next: {{ if .NextEPGFetch }}{{ .NextEPGFetch.Format "2006-01-02 15:04" }}{{ else }}N/A{{ end }}
+                        </div>
+                    {{ else }}
+                        <span class="text-gray-600">No URL</span>
+                    {{ end }}
+                </td>
                 <td class="p-4 space-x-3">
+                    {{ if .EPGFetchURL }}
+                    <button onclick="syncEPG({{ .ID }}, this)" class="text-green-400 hover:text-green-300 transition-colors inline-block">Sync EPG</button>
+                    {{ end }}
                     <a href="/admin/live-tv/edit/{{ .ID }}" class="text-blue-400 hover:text-blue-300">Edit</a>
                     <form action="/admin/live-tv/delete/{{ .ID }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this channel?');" class="inline">
                         <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Remove</button>
@@ -69,6 +84,28 @@
         } catch(e) {
             alert('Error: ' + e.message);
             location.reload();
+        }
+    }
+
+    async function syncEPG(id, btn) {
+        if (!confirm("This will fetch and overwrite the EPG for today onwards. Continue?")) return;
+        const originalText = btn.innerText;
+        btn.innerText = "Syncing...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/admin/live-tv/fetch-epg/' + id, { method: 'POST' });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || "HTTP error " + res.status);
+            }
+            const data = await res.json();
+            alert("Success! " + data.count + " programs synced.");
+            location.reload();
+        } catch(e) {
+            alert('Error syncing EPG: ' + e.message);
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
     }
 </script>

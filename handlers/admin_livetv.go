@@ -65,6 +65,9 @@ func (h *AdminLiveTVHandler) View(w http.ResponseWriter, r *http.Request) {
 			"LogoURL":           logoURL,
 			"YoutubeURL":        youtubeURL,
 			"YoutubeChannelURL": youtubeChannelURL,
+			"EPGFetchURL":       c.EPGFetchURL,
+			"LastEPGFetch":      c.LastEPGFetch,
+			"NextEPGFetch":      c.NextEPGFetch,
 		})
 	}
 
@@ -83,6 +86,7 @@ func (h *AdminLiveTVHandler) Create(w http.ResponseWriter, r *http.Request) {
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
 	youtubeChannelUrl := r.FormValue("youtube_channel_url")
+	epgFetchUrl := r.FormValue("epg_fetch_url")
 
 	channel := models.LiveTVChannel{
 		Name:              name,
@@ -91,6 +95,7 @@ func (h *AdminLiveTVHandler) Create(w http.ResponseWriter, r *http.Request) {
 		LogoURL:           stringPtr(logoUrl),
 		YoutubeURL:        stringPtr(youtubeUrl),
 		YoutubeChannelURL: stringPtr(youtubeChannelUrl),
+		EPGFetchURL:       stringPtr(epgFetchUrl),
 	}
 
 	channelID, err := h.livetvService.CreateChannel(r.Context(), &channel)
@@ -167,6 +172,9 @@ func (h *AdminLiveTVHandler) EditFormView(w http.ResponseWriter, r *http.Request
 		"LogoURL":           logoURL,
 		"YoutubeURL":        youtubeURL,
 		"YoutubeChannelURL": youtubeChannelURL,
+		"EPGFetchURL":       channel.EPGFetchURL,
+		"LastEPGFetch":      channel.LastEPGFetch,
+		"NextEPGFetch":      channel.NextEPGFetch,
 		"EPGData":           epgJSON,
 	}
 
@@ -188,6 +196,7 @@ func (h *AdminLiveTVHandler) Update(w http.ResponseWriter, r *http.Request) {
 	logoUrl := r.FormValue("logo_url")
 	youtubeUrl := r.FormValue("youtube_url")
 	youtubeChannelUrl := r.FormValue("youtube_channel_url")
+	epgFetchUrl := r.FormValue("epg_fetch_url")
 
 	channel := models.LiveTVChannel{
 		ID:                id,
@@ -197,6 +206,15 @@ func (h *AdminLiveTVHandler) Update(w http.ResponseWriter, r *http.Request) {
 		LogoURL:           stringPtr(logoUrl),
 		YoutubeURL:        stringPtr(youtubeUrl),
 		YoutubeChannelURL: stringPtr(youtubeChannelUrl),
+		EPGFetchURL:       stringPtr(epgFetchUrl),
+		LastEPGFetch:      nil, // preserve via service if needed, but since we use update, wait! 
+	}
+	
+	// Better to retrieve the existing channel to preserve LastEPGFetch and NextEPGFetch
+	existing, _ := h.livetvService.GetChannel(r.Context(), id)
+	if existing != nil {
+		channel.LastEPGFetch = existing.LastEPGFetch
+		channel.NextEPGFetch = existing.NextEPGFetch
 	}
 
 	err = h.livetvService.UpdateChannel(r.Context(), &channel)
@@ -482,5 +500,100 @@ func (h *AdminLiveTVHandler) FetchAllYouTubeLive(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":       true,
 		"updated_count": updatedCount,
+	})
+}
+
+type RemoteEPGItem struct {
+	Title     string `json:"title"`
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+func (h *AdminLiveTVHandler) FetchEPGData(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	channel, err := h.livetvService.GetChannel(r.Context(), id)
+	if err != nil || channel == nil {
+		http.Error(w, "Channel not found", http.StatusNotFound)
+		return
+	}
+
+	if channel.EPGFetchURL == nil || *channel.EPGFetchURL == "" {
+		http.Error(w, "No EPG Fetch URL defined for this channel", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := http.Get(*channel.EPGFetchURL)
+	if err != nil {
+		http.Error(w, "Failed to fetch from EPG URL: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	var remoteData []RemoteEPGItem
+	if err := json.NewDecoder(resp.Body).Decode(&remoteData); err != nil {
+		http.Error(w, "Failed to parse EPG JSON: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Filter and convert remote data
+	now := time.Now().UTC()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	var newEPGs []models.EPG
+
+	for _, item := range remoteData {
+		var start, end time.Time
+		if t, err := time.Parse(time.RFC3339, item.StartTime); err == nil {
+			start = t
+		} else if t, err := time.Parse("2006-01-02 15:04:05", item.StartTime); err == nil {
+			start = t
+		}
+		if t, err := time.Parse(time.RFC3339, item.EndTime); err == nil {
+			end = t
+		} else if t, err := time.Parse("2006-01-02 15:04:05", item.EndTime); err == nil {
+			end = t
+		}
+
+		// Only keep from today onwards
+		if end.Before(startOfToday) {
+			continue
+		}
+
+		newEPGs = append(newEPGs, models.EPG{
+			ChannelID:    id,
+			ProgramTitle: item.Title,
+			StartTime:    start,
+			EndTime:      end,
+		})
+	}
+
+	// Fetch existing EPG to keep past ones if they wanted (or replace all if they wanted only today onwards).
+	// "we only want the data from today and so on so ignore all data from yesteday and previous days"
+	// This means we can just save only the newEPGs and it effectively clears out the old data.
+	// But let's also keep existing ones from DB that are before today? No, the prompt says "ignore all data from yesterday and previous days", so discarding them is likely what they mean to keep the table small.
+	
+	err = h.livetvService.SaveEPG(r.Context(), int64(id), newEPGs)
+	if err != nil {
+		http.Error(w, "Failed to save EPG: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	nowTime := time.Now()
+	nextTime := nowTime.Add(24 * time.Hour)
+	channel.LastEPGFetch = &nowTime
+	channel.NextEPGFetch = &nextTime
+	h.livetvService.UpdateChannel(r.Context(), channel)
+
+	config.ClearCachePattern("livetv_*")
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"count":   len(newEPGs),
 	})
 }
