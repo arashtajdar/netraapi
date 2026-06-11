@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"sheedbox-api/config"
+	"sheedbox-api/contextkeys"
 )
 
 type FeaturedItem struct {
@@ -29,9 +31,12 @@ func NewFeaturedHandler() *FeaturedHandler {
 func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	userLevel := contextkeys.UserLevelFromContext(r.Context())
+	cacheKey := fmt.Sprintf("featured_items:level:%d", userLevel)
+
 	// Check Redis Cache
 	if config.RedisClient != nil {
-		cached, err := config.RedisClient.Get(context.Background(), "featured_items").Result()
+		cached, err := config.RedisClient.Get(context.Background(), cacheKey).Result()
 		if err == nil {
 			w.Write([]byte(cached))
 			return
@@ -60,8 +65,15 @@ func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 			WHEN 'sports' THEN NULL
 		END) as backdrop_url
 		FROM featured_items f
+		WHERE (CASE f.content_type
+			WHEN 'movie' THEN (SELECT access_level FROM movies WHERE id = f.content_id)
+			WHEN 'series' THEN (SELECT access_level FROM series WHERE id = f.content_id)
+			WHEN 'live_tv' THEN (SELECT access_level FROM live_tv_channels WHERE id = f.content_id)
+			WHEN 'sports' THEN (SELECT access_level FROM sports_events WHERE id = f.content_id)
+			ELSE 1
+		END) <= ?
 		ORDER BY f.created_at DESC
-	`)
+	`, userLevel)
 	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,11 +97,11 @@ func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 	// Fallback to random items if no featured items exist
 	if len(featured) == 0 {
 		fallbackRows, err := config.DB.Query(`
-			(SELECT id as content_id, 'movie' as content_type, title, poster_url, backdrop_url, description FROM movies ORDER BY RAND() LIMIT 5)
+			(SELECT id as content_id, 'movie' as content_type, title, poster_url, backdrop_url, description FROM movies WHERE access_level <= ? ORDER BY RAND() LIMIT 5)
 			UNION ALL
-			(SELECT id as content_id, 'series' as content_type, title, poster_url, backdrop_url, description FROM series ORDER BY RAND() LIMIT 5)
+			(SELECT id as content_id, 'series' as content_type, title, poster_url, backdrop_url, description FROM series WHERE access_level <= ? ORDER BY RAND() LIMIT 5)
 			ORDER BY RAND() LIMIT 5
-		`)
+		`, userLevel, userLevel)
 		if err == nil {
 			defer fallbackRows.Close()
 			for fallbackRows.Next() {
@@ -114,7 +126,7 @@ func (h *FeaturedHandler) GetFeatured(w http.ResponseWriter, r *http.Request) {
 	
 	// Save to Redis Cache (expires in 10 minutes)
 	if config.RedisClient != nil {
-		config.RedisClient.Set(context.Background(), "featured_items", respBytes, 10*time.Minute)
+		config.RedisClient.Set(context.Background(), cacheKey, respBytes, 10*time.Minute)
 	}
 
 	w.Write(respBytes)

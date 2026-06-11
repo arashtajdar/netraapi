@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
@@ -51,6 +52,12 @@ func (h *SeriesHandler) GetSeriesDetail(w http.ResponseWriter, r *http.Request) 
 	}
 	if detail == nil {
 		http.Error(w, `{"error": "Series not found"}`, http.StatusNotFound)
+		return
+	}
+
+	userLevel := contextkeys.UserLevelFromContext(r.Context())
+	if detail.AccessLevel > userLevel {
+		http.Error(w, `{"error": "You don't have access to this content due to user level restrictions"}`, http.StatusForbidden)
 		return
 	}
 

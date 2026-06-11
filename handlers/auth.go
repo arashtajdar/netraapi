@@ -77,8 +77,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
+		"user_id":    user.ID,
+		"user_level": user.UserLevel,
+		"exp":        time.Now().Add(time.Hour * 72).Unix(),
 	})
 
 	tokenString, _ := token.SignedString(config.JWTSecret())
@@ -178,8 +179,9 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 72).Unix(),
+		"user_id":    user.ID,
+		"user_level": user.UserLevel,
+		"exp":        time.Now().Add(time.Hour * 72).Unix(),
 	})
 
 	tokenString, _ := token.SignedString(config.JWTSecret())

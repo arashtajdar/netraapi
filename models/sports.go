@@ -13,6 +13,7 @@ type SportsEvent struct {
 	LiveStreamURL *string         `json:"live_stream_url"`
 	VideoSources  json.RawMessage `json:"video_sources"`
 	StartTime     *time.Time      `json:"start_time"`
+	AccessLevel   int             `json:"access_level"`
 	CreatedAt     time.Time       `json:"created_at"`
 	UpdatedAt     time.Time       `json:"updated_at"`
 }

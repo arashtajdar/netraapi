@@ -301,16 +301,20 @@ func registerAPIRoutes(
 	r.Get("/settings/menu", settingsHandler.GetSettings)
 	r.Get("/content/up-next", upNextHandler.GetUpNext)
 
-	// Public catalog routes
-	r.Get("/featured", featuredHandler.GetFeatured)
-	r.Get("/movies", movieHandler.GetMovies)
-	r.Get("/movies/{id}", movieHandler.GetMovieDetail)
-	r.Get("/series", seriesHandler.GetSeries)
-	r.Get("/series/{id}", seriesHandler.GetSeriesDetail)
-	r.Get("/live-tv", livetvHandler.GetLiveChannels)
-	r.Get("/sports", sportsHandler.GetSportsEvents)
-	r.Get("/music", musicHandler.GetMusic)
-	r.Get("/music/{id}", musicHandler.GetMusicDetail)
+	// Public catalog routes with optional authentication for access level
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.OptionalJWTMiddleware)
+		r.Get("/featured", featuredHandler.GetFeatured)
+		r.Get("/movies", movieHandler.GetMovies)
+		r.Get("/movies/{id}", movieHandler.GetMovieDetail)
+		r.Get("/series", seriesHandler.GetSeries)
+		r.Get("/series/{id}", seriesHandler.GetSeriesDetail)
+		r.Get("/live-tv", livetvHandler.GetLiveChannels)
+		r.Get("/sports", sportsHandler.GetSportsEvents)
+		r.Get("/music", musicHandler.GetMusic)
+		r.Get("/music/{id}", musicHandler.GetMusicDetail)
+		r.Get("/recommendations", recommendationHandler.GetRecommendations)
+	})
 
 	// Protected endpoints requiring JWT validation
 	r.Group(func(r chi.Router) {
@@ -321,8 +325,6 @@ func registerAPIRoutes(
 		r.Post("/profiles", profileHandler.CreateProfile)
 		r.Put("/profiles/{id}", profileHandler.UpdateProfile)
 		r.Delete("/profiles/{id}", profileHandler.DeleteProfile)
-
-		r.Get("/recommendations", recommendationHandler.GetRecommendations)
 
 		r.Post("/movies/resume", movieHandler.ResumePlayback)
 		r.Get("/watchlists", watchlistHandler.GetUserWatchlists)

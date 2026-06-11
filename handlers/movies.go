@@ -60,6 +60,12 @@ func (h *MovieHandler) GetMovieDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userLevel := contextkeys.UserLevelFromContext(r.Context())
+	if m.AccessLevel > userLevel {
+		http.Error(w, `{"error": "You don't have access to this content due to user level restrictions"}`, http.StatusForbidden)
+		return
+	}
+
 	json.NewEncoder(w).Encode(m)
 }
 

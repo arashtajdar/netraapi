@@ -14,6 +14,7 @@ type Series struct {
 	Rating      *float64        `json:"rating"`
 	PosterURL   *string         `json:"poster_url"`
 	BackdropURL *string         `json:"backdrop_url"`
+	AccessLevel int             `json:"access_level"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 }

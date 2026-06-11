@@ -25,7 +25,7 @@ func ConnectDB(migrationsFS embed.FS) {
 	host := os.Getenv("DB_HOST")
 	name := os.Getenv("DB_NAME")
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", user, pass, host, name)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&multiStatements=true", user, pass, host, name)
 
 	var err error
 	DB, err = sql.Open("mysql", dsn)

@@ -16,6 +16,7 @@ type LiveTVChannel struct {
 	LastEPGFetch      *time.Time `json:"last_epg_fetch"`
 	NextEPGFetch      *time.Time `json:"next_epg_fetch"`
 	EPG               []EPG      `json:"epg"`
+	AccessLevel       int        `json:"access_level"`
 	CreatedAt         time.Time  `json:"created_at"`
 }
 

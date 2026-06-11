@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/models"
 	"sheedbox-api/repository"
 )
@@ -18,8 +19,9 @@ func NewSportsRepository(db *sql.DB) repository.SportsRepository {
 }
 
 func (r *sportsRepo) List(ctx context.Context) ([]models.SportsEvent, error) {
-	query := `SELECT id, title, description, is_live, live_stream_url, video_sources, start_time, created_at, updated_at FROM sports_events`
-	rows, err := r.db.QueryContext(ctx, query)
+	userLevel := contextkeys.UserLevelFromContext(ctx)
+	query := `SELECT id, title, description, is_live, live_stream_url, video_sources, start_time, access_level, created_at, updated_at FROM sports_events WHERE access_level <= ?`
+	rows, err := r.db.QueryContext(ctx, query, userLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +30,7 @@ func (r *sportsRepo) List(ctx context.Context) ([]models.SportsEvent, error) {
 	var events []models.SportsEvent
 	for rows.Next() {
 		var e models.SportsEvent
-		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &e.IsLive, &e.LiveStreamURL, &e.VideoSources, &e.StartTime, &e.CreatedAt, &e.UpdatedAt); err == nil {
+		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &e.IsLive, &e.LiveStreamURL, &e.VideoSources, &e.StartTime, &e.AccessLevel, &e.CreatedAt, &e.UpdatedAt); err == nil {
 			events = append(events, e)
 		}
 	}
@@ -39,9 +41,9 @@ func (r *sportsRepo) List(ctx context.Context) ([]models.SportsEvent, error) {
 }
 
 func (r *sportsRepo) Create(ctx context.Context, e *models.SportsEvent) error {
-	query := `INSERT INTO sports_events (title, description, is_live, live_stream_url, video_sources, start_time) 
-		VALUES (?, NULLIF(?,''), ?, NULLIF(?,''), ?, NULLIF(?,''))`
-	res, err := r.db.ExecContext(ctx, query, e.Title, e.Description, e.IsLive, e.LiveStreamURL, e.VideoSources, e.StartTime)
+	query := `INSERT INTO sports_events (title, description, is_live, live_stream_url, video_sources, start_time, access_level) 
+		VALUES (?, NULLIF(?,''), ?, NULLIF(?,''), ?, NULLIF(?,''), ?)`
+	res, err := r.db.ExecContext(ctx, query, e.Title, e.Description, e.IsLive, e.LiveStreamURL, e.VideoSources, e.StartTime, e.AccessLevel)
 	if err != nil {
 		return err
 	}

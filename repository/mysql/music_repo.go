@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/models"
 	"sheedbox-api/repository"
 )
@@ -18,8 +19,9 @@ func NewMusicRepository(db *sql.DB) repository.MusicRepository {
 }
 
 func (r *musicRepo) List(ctx context.Context) ([]models.MusicContent, error) {
-	query := `SELECT id, title, description, artist, poster_url, backdrop_url, created_at, updated_at FROM music_content`
-	rows, err := r.db.QueryContext(ctx, query)
+	userLevel := contextkeys.UserLevelFromContext(ctx)
+	query := `SELECT id, title, description, artist, poster_url, backdrop_url, access_level, created_at, updated_at FROM music_content WHERE access_level <= ?`
+	rows, err := r.db.QueryContext(ctx, query, userLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +30,7 @@ func (r *musicRepo) List(ctx context.Context) ([]models.MusicContent, error) {
 	var music []models.MusicContent
 	for rows.Next() {
 		var m models.MusicContent
-		if err := rows.Scan(&m.ID, &m.Title, &m.Description, &m.Artist, &m.PosterURL, &m.BackdropURL, &m.CreatedAt, &m.UpdatedAt); err == nil {
+		if err := rows.Scan(&m.ID, &m.Title, &m.Description, &m.Artist, &m.PosterURL, &m.BackdropURL, &m.AccessLevel, &m.CreatedAt, &m.UpdatedAt); err == nil {
 			music = append(music, m)
 		}
 	}
@@ -39,11 +41,11 @@ func (r *musicRepo) List(ctx context.Context) ([]models.MusicContent, error) {
 }
 
 func (r *musicRepo) GetByID(ctx context.Context, id int) (*models.MusicContent, error) {
-	query := `SELECT id, title, description, artist, video_sources, audio_sources, poster_url, backdrop_url, release_date, created_at, updated_at FROM music_content WHERE id = ?`
+	query := `SELECT id, title, description, artist, video_sources, audio_sources, poster_url, backdrop_url, release_date, access_level, created_at, updated_at FROM music_content WHERE id = ?`
 	var m models.MusicContent
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&m.ID, &m.Title, &m.Description, &m.Artist, &m.VideoSources, &m.AudioSources, 
-		&m.PosterURL, &m.BackdropURL, &m.ReleaseDate, &m.CreatedAt, &m.UpdatedAt,
+		&m.PosterURL, &m.BackdropURL, &m.ReleaseDate, &m.AccessLevel, &m.CreatedAt, &m.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -55,9 +57,9 @@ func (r *musicRepo) GetByID(ctx context.Context, id int) (*models.MusicContent, 
 }
 
 func (r *musicRepo) Create(ctx context.Context, m *models.MusicContent) error {
-	query := `INSERT INTO music_content (title, description, artist, release_date, poster_url, backdrop_url, video_sources) 
-		VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), ?)`
-	res, err := r.db.ExecContext(ctx, query, m.Title, m.Description, m.Artist, m.ReleaseDate, m.PosterURL, m.BackdropURL, m.VideoSources)
+	query := `INSERT INTO music_content (title, description, artist, release_date, poster_url, backdrop_url, access_level, video_sources) 
+		VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), ?, ?)`
+	res, err := r.db.ExecContext(ctx, query, m.Title, m.Description, m.Artist, m.ReleaseDate, m.PosterURL, m.BackdropURL, m.AccessLevel, m.VideoSources)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/services"
 
 	"github.com/go-chi/chi/v5"
@@ -49,6 +50,12 @@ func (h *MusicHandler) GetMusicDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	if m == nil {
 		http.Error(w, `{"error": "Music not found"}`, http.StatusNotFound)
+		return
+	}
+
+	userLevel := contextkeys.UserLevelFromContext(r.Context())
+	if m.AccessLevel > userLevel {
+		http.Error(w, `{"error": "You don't have access to this content due to user level restrictions"}`, http.StatusForbidden)
 		return
 	}
 

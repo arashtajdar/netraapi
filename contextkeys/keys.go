@@ -16,6 +16,9 @@ var (
 	// ProfileIDKey is the context key for the active profile ID.
 	ProfileIDKey = &contextKey{"profile_id"}
 
+	// UserLevelKey is the context key for the user's access level.
+	UserLevelKey = &contextKey{"user_level"}
+
 	// RequestIDKey is the context key for request tracking.
 	RequestIDKey = &contextKey{"request_id"}
 )
@@ -53,4 +56,19 @@ func ProfileIDFromContext(ctx context.Context) (int, bool) {
 func RequestIDFromContext(ctx context.Context) (string, bool) {
 	id, ok := ctx.Value(RequestIDKey).(string)
 	return id, ok
+}
+
+// WithUserLevel returns a new context with the user level set.
+func WithUserLevel(ctx context.Context, level int) context.Context {
+	return context.WithValue(ctx, UserLevelKey, level)
+}
+
+// UserLevelFromContext safely extracts the user level from the context.
+// Returns 1 (default level) if not found.
+func UserLevelFromContext(ctx context.Context) int {
+	level, ok := ctx.Value(UserLevelKey).(int)
+	if !ok {
+		return 1 // Default level for unauthenticated users
+	}
+	return level
 }

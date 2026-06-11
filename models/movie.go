@@ -20,6 +20,7 @@ type Movie struct {
 	Subtitles    json.RawMessage `json:"subtitles"`
 	IntroStart   *int            `json:"intro_start"`
 	IntroEnd     *int            `json:"intro_end"`
+	AccessLevel  int             `json:"access_level"`
 	CreatedAt    time.Time       `json:"created_at"`
 	UpdatedAt    time.Time       `json:"updated_at"`
 }

@@ -31,11 +31,7 @@ func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 
 	profileID, _ := contextkeys.ProfileIDFromContext(r.Context())
-	userID, ok := contextkeys.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
-		return
-	}
+	userID, _ := contextkeys.UserIDFromContext(r.Context())
 
 	cacheKey := userID
 	if profileID != 0 {

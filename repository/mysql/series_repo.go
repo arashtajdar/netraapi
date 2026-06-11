@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"sheedbox-api/contextkeys"
 	"sheedbox-api/models"
 	"sheedbox-api/repository"
 )
@@ -18,8 +19,9 @@ func NewSeriesRepository(db *sql.DB) repository.SeriesRepository {
 }
 
 func (r *seriesRepo) List(ctx context.Context) ([]models.Series, error) {
-	query := `SELECT id, title, description, director, cast_members, rating, poster_url, backdrop_url, created_at, updated_at FROM series`
-	rows, err := r.db.QueryContext(ctx, query)
+	userLevel := contextkeys.UserLevelFromContext(ctx)
+	query := `SELECT id, title, description, director, cast_members, rating, poster_url, backdrop_url, access_level, created_at, updated_at FROM series WHERE access_level <= ? ORDER BY created_at DESC`
+	rows, err := r.db.QueryContext(ctx, query, userLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +30,7 @@ func (r *seriesRepo) List(ctx context.Context) ([]models.Series, error) {
 	var seriesList []models.Series
 	for rows.Next() {
 		var s models.Series
-		if err := rows.Scan(&s.ID, &s.Title, &s.Description, &s.Director, &s.CastMembers, &s.Rating, &s.PosterURL, &s.BackdropURL, &s.CreatedAt, &s.UpdatedAt); err == nil {
+		if err := rows.Scan(&s.ID, &s.Title, &s.Description, &s.Director, &s.CastMembers, &s.Rating, &s.PosterURL, &s.BackdropURL, &s.AccessLevel, &s.CreatedAt, &s.UpdatedAt); err == nil {
 			seriesList = append(seriesList, s)
 		}
 	}
@@ -39,9 +41,9 @@ func (r *seriesRepo) List(ctx context.Context) ([]models.Series, error) {
 }
 
 func (r *seriesRepo) GetByID(ctx context.Context, id int) (*models.Series, error) {
-	query := `SELECT id, title, description, director, cast_members, rating, poster_url, backdrop_url, created_at, updated_at FROM series WHERE id = ?`
+	query := `SELECT id, title, description, director, cast_members, rating, poster_url, backdrop_url, access_level, created_at, updated_at FROM series WHERE id = ?`
 	var s models.Series
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&s.ID, &s.Title, &s.Description, &s.Director, &s.CastMembers, &s.Rating, &s.PosterURL, &s.BackdropURL, &s.CreatedAt, &s.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&s.ID, &s.Title, &s.Description, &s.Director, &s.CastMembers, &s.Rating, &s.PosterURL, &s.BackdropURL, &s.AccessLevel, &s.CreatedAt, &s.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -94,9 +96,9 @@ func (r *seriesRepo) GetEpisodesBySeasonID(ctx context.Context, seasonID int) ([
 }
 
 func (r *seriesRepo) Create(ctx context.Context, s *models.Series) error {
-	query := `INSERT INTO series (title, description, director, rating, poster_url, backdrop_url, cast_members) 
-		VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), ?)`
-	res, err := r.db.ExecContext(ctx, query, s.Title, s.Description, s.Director, s.Rating, s.PosterURL, s.BackdropURL, s.CastMembers)
+	query := `INSERT INTO series (title, description, director, rating, poster_url, backdrop_url, access_level, cast_members) 
+		VALUES (?, NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), NULLIF(?,''), ?, ?)`
+	res, err := r.db.ExecContext(ctx, query, s.Title, s.Description, s.Director, s.Rating, s.PosterURL, s.BackdropURL, s.AccessLevel, s.CastMembers)
 	if err != nil {
 		return err
 	}
