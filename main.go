@@ -237,6 +237,7 @@ func main() {
 	})
     
 	r.Get("/ws/party", websockets.ServeWS(hub))
+	r.Get("/youtube-embed/{id}", livetvHandler.YoutubeEmbed)
 
 	port := os.Getenv("PORT")
 	if port == "" {
