@@ -79,7 +79,7 @@ func (h *AdminFeaturedHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	config.ClearCachePattern("featured_items")
+	config.ClearCachePattern("featured_items*")
 	http.Redirect(w, r, "/admin/featured", http.StatusSeeOther)
 }
 
@@ -90,6 +90,6 @@ func (h *AdminFeaturedHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	config.ClearCachePattern("featured_items")
+	config.ClearCachePattern("featured_items*")
 	http.Redirect(w, r, "/admin/featured", http.StatusSeeOther)
 }
