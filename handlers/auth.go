@@ -26,20 +26,33 @@ func NewAuthHandler(userService *services.UserService) *AuthHandler {
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	var user models.User
+	var input struct {
+		Email    string `json:"email"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
 
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, `{"error": "Invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
+	if input.Email == "" || input.Username == "" || input.Password == "" {
+		http.Error(w, `{"error": "All fields are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, `{"error": "Encryption Failed"}`, http.StatusInternalServerError)
 		return
 	}
 
-	user.PasswordHash = string(hash)
+	user := models.User{
+		Username:     input.Username,
+		Email:        input.Email,
+		PasswordHash: string(hash),
+	}
 	err = h.userService.CreateUser(r.Context(), &user)
 	if err != nil {
 		http.Error(w, `{"error": "Email or Username already taken"}`, http.StatusConflict)
