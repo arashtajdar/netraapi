@@ -37,10 +37,10 @@ services:
       - db
       - redis
     environment:
-      - DB_USER=root
-      - DB_PASS=secret
-      - DB_HOST=db:3306
-      - DB_NAME=sheedbox_db
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
       - REDIS_URL=redis:6379
       - PORT=9876
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
