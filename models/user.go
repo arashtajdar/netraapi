@@ -12,11 +12,11 @@ type User struct {
 	PasswordHash string          `json:"-"`
 	VirtualCoins int             `json:"virtual_coins"`
 	UserLevel    int             `json:"user_level"`
-	FirstName    *string         `json:"first_name"`
-	LastName     *string         `json:"last_name"`
-	AvatarURL    *string         `json:"avatar_url"`
-	Settings     json.RawMessage `json:"settings"`
-	CreatedAt    time.Time       `json:"created_at"`
+	FirstName    *string          `json:"first_name"`
+	LastName     *string          `json:"last_name"`
+	AvatarURL    *string          `json:"avatar_url"`
+	Settings     *json.RawMessage `json:"settings"`
+	CreatedAt    time.Time        `json:"created_at"`
 }
 
 type UserProfile struct {
